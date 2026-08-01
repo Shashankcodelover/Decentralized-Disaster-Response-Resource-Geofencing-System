@@ -1,0 +1,13 @@
+{
+  "name": "Enforce Import Rules",
+  "version": "1.0.0",
+  "description": "Warn if any file imports from the deleted @mirage/shared package instead of the correct split packages",
+  "when": {
+    "type": "fileEdited",
+    "patterns": ["apps/**/*.ts", "apps/**/*.tsx", "packages/**/*.ts"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Check the file that was just saved. If it contains any import from '@mirage/shared' (not '@mirage/shared-types', '@mirage/crdt-logic', or '@mirage/ui'), flag it as a violation of the import rules in project-context.md and suggest the correct replacement import. Only report if a violation is found."
+  }
+}

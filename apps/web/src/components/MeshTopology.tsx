@@ -1,0 +1,180 @@
+import { useAppTheme } from '../hooks/ThemeContext';
+import { motion } from 'framer-motion';
+
+interface Props {
+  connected: boolean;
+  peerCount: number;
+}
+
+export function MeshTopology({ connected, peerCount }: Props) {
+  const { styles, themeMode } = useAppTheme();
+  const isContrast = themeMode === 'contrast';
+
+  // Define graph layout parameters
+  const width = 300;
+  const height = 220;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const radius = 65;
+
+  // Generate peer node coordinates orbiting the center
+  const peers = Array.from({ length: peerCount }).map((_, i) => {
+    const angle = (i * 2 * Math.PI) / peerCount;
+    return {
+      id: `Peer-${i + 1}`,
+      x: centerX + radius * Math.cos(angle),
+      y: centerY + radius * Math.sin(angle),
+      latency: `${12 + (i * 4) + (Math.floor(Math.random() * 3))}ms`,
+    };
+  });
+
+  return (
+    <div style={{ padding: 12, fontFamily: styles.fontFamily, color: styles.textColor, display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <span style={{ fontSize: 10, color: isContrast ? '#00ff00' : '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+          Mesh Health & Topology
+        </span>
+        <span style={{ fontSize: 10, color: isContrast ? '#00ff00' : '#475569' }}>
+          {peerCount + (connected ? 1 : 0)} Active Nodes
+        </span>
+      </div>
+
+      {/* Topology SVG Canvas */}
+      <div style={{ 
+        background: '#020617', 
+        border: `${styles.borderWidth} solid ${styles.borderColor}`, 
+        borderRadius: 8, 
+        padding: 8,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative'
+      }}>
+        <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: 'visible' }}>
+          {/* Connector lines to Central Server */}
+          {connected && peers.map((peer) => (
+            <line
+              key={`link-srv-${peer.id}`}
+              x1={centerX}
+              y1={centerY}
+              x2={peer.x}
+              y2={peer.y}
+              stroke={isContrast ? '#00ff00' : '#1e3a5f'}
+              strokeWidth={1.5}
+              strokeDasharray={isContrast ? '4, 4' : undefined}
+            />
+          ))}
+
+          {/* Peer-to-Peer Mesh connector links */}
+          {peers.map((peer, idx) => {
+            const nextPeer = peers[(idx + 1) % peers.length];
+            if (peer.id === nextPeer?.id) return null;
+            return (
+              <line
+                key={`link-mesh-${peer.id}`}
+                x1={peer.x}
+                y1={peer.y}
+                x2={nextPeer.x}
+                y2={nextPeer.y}
+                stroke={isContrast ? '#00ff00' : '#0369a1'}
+                strokeWidth={1}
+                strokeDasharray="2, 2"
+              />
+            );
+          })}
+
+          {/* Central Server Node */}
+          {connected && (
+            <g>
+              {/* Pulse glow */}
+              <motion.circle
+                cx={centerX}
+                cy={centerY}
+                r={24}
+                fill="none"
+                stroke={isContrast ? '#00ff00' : '#0284c7'}
+                strokeWidth={1}
+                animate={{ scale: [1, 1.3, 1], opacity: [0.6, 0.1, 0.6] }}
+                transition={{ duration: 2, repeat: Infinity }}
+              />
+              <circle
+                cx={centerX}
+                cy={centerY}
+                r={12}
+                fill={isContrast ? '#000000' : '#0f172a'}
+                stroke={isContrast ? '#00ff00' : '#0ea5e9'}
+                strokeWidth={2}
+              />
+              <text
+                x={centerX}
+                y={centerY + 3}
+                fill={isContrast ? '#00ff00' : '#38bdf8'}
+                fontSize={8}
+                fontWeight="bold"
+                textAnchor="middle"
+              >
+                SRV
+              </text>
+            </g>
+          )}
+
+          {/* Offline Server marker */}
+          {!connected && (
+            <circle
+              cx={centerX}
+              cy={centerY}
+              r={12}
+              fill={isContrast ? '#000000' : '#1e293b'}
+              stroke={isContrast ? '#ff3333' : '#64748b'}
+              strokeWidth={2}
+              opacity={0.5}
+            />
+          )}
+
+          {/* Orbiting Peer Nodes */}
+          {peers.map((peer, i) => (
+            <g key={peer.id}>
+              {/* Connection links label */}
+              <text
+                x={(centerX + peer.x) / 2}
+                y={(centerY + peer.y) / 2 - 3}
+                fill={isContrast ? '#00ff00' : '#64748b'}
+                fontSize={7}
+                fontFamily="monospace"
+                textAnchor="middle"
+              >
+                {peer.latency}
+              </text>
+
+              <circle
+                cx={peer.x}
+                cy={peer.y}
+                r={8}
+                fill={isContrast ? '#000000' : '#030712'}
+                stroke={isContrast ? '#00ff00' : '#a78bfa'}
+                strokeWidth={2}
+              />
+              <text
+                x={peer.x}
+                y={peer.y + 12}
+                fill={isContrast ? '#00ff00' : '#e2e8f0'}
+                fontSize={7}
+                fontWeight="bold"
+                textAnchor="middle"
+              >
+                PEER {i + 1}
+              </text>
+            </g>
+          ))}
+        </svg>
+      </div>
+
+      <div style={{ marginTop: 12, fontSize: 10, color: isContrast ? '#00ff00' : '#64748b', lineHeight: 1.4 }}>
+        <div style={{ fontWeight: 'bold', color: isContrast ? '#00ff00' : '#94a3b8', marginBottom: 4 }}>Mesh Network Parameters</div>
+        * Protocol: WebRTC full-mesh data channels<br />
+        * Multi-hop status: Active (relay enabled)<br />
+        * Standalone sync: CRDT delta updates active
+      </div>
+    </div>
+  );
+}

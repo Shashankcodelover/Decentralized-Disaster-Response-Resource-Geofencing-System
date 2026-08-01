@@ -1,0 +1,13 @@
+{
+  "name": "Socket Event Hardcode Guard",
+  "version": "1.0.0",
+  "description": "Detect hardcoded socket event strings instead of SOCKET_EVENTS constants",
+  "when": {
+    "type": "fileEdited",
+    "patterns": ["apps/**/*.ts", "apps/**/*.tsx", "packages/**/*.ts"]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "Review the file that was just saved. Check if any socket.on() or socket.emit() calls use hardcoded string literals (e.g., 'zone:enter', 'resource:updated') instead of the SOCKET_EVENTS constants from '@mirage/shared-types'. If violations are found, show the exact lines and the correct SOCKET_EVENTS replacement. Only report if violations exist."
+  }
+}

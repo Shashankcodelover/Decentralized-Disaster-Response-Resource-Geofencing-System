@@ -1,0 +1,94 @@
+version: '3.9'
+
+services:
+  # --- MongoDB Replica Set (required for change streams & transactions) ---
+  mongo-primary:
+    image: mongo:7
+    container_name: mirage-mongo-primary
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongo-init:
+    image: mongo:7
+    depends_on:
+      mongo-primary:
+        condition: service_healthy
+    restart: "no"
+    entrypoint: >
+      mongosh --host mongo-primary:27017 --eval '
+        try {
+          rs.initiate({ _id: "rs0", members: [{ _id: 0, host: "mongo-primary:27017" }] });
+          print("Replica set initiated");
+        } catch(e) {
+          if (e.codeName === "AlreadyInitialized") print("Already initialized");
+          else throw e;
+        }
+      '
+
+  # --- Redis (Socket.io adapter + future caching) ---
+  redis:
+    image: redis:7-alpine
+    container_name: mirage-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # --- API Server ---
+  api:
+    build:
+      context: .
+      dockerfile: apps/server/Dockerfile
+    container_name: mirage-api
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      MONGO_URI: mongodb://mongo-primary:27017/mirage?replicaSet=rs0
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-change_me_in_production}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:3000}
+    depends_on:
+      mongo-primary:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:4000/health || exit 1
+      interval: 30s
+      timeout: 5s
+      start_period: 15s
+      retries: 3
+
+  # --- Web Frontend ---
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    container_name: mirage-web
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+
+volumes:
+  mongo-data:
+  redis-data:

@@ -1,0 +1,76 @@
+# Master UI/UX Generation Prompt: Decentralized Disaster Response (Project Mirage - Light Theme Edition)
+
+*(Resilient, Geospatial Geofencing Monorepo with WebRTC Yjs Peer-to-Peer CRDT Synchronization)*
+
+Feed this highly detailed, professional, and visually stunning prompt into your AI design suite (e.g., Project IDX, Google AI Studio, v0.dev, or Bolt.new) to generate a complete, premium, responsive layout.
+
+---
+
+## Generator Prompt Specification
+
+Build a premium, responsive, and visually delightful web interface for "Project Mirage — Decentralized Disaster Response System" utilizing a premium, modern Light Theme. The interface must include a dynamic initial Splash Screen Gateway that splits into three distinct role-based sub-systems (HQ Commander/Admin, Field Responder, and Logistics Coordinator).
+
+### 1. AESTHETICS & EMOTIONAL SYSTEM THEME
+- **Visual Feel:** "Tactical Clarity and High Visibility." Designed to look like a clean, advanced tactical operation desk—extremely professional, reliable, and legible under high stress. Soft light grays, warm charcoal headers, and intense warning accents ensure absolute data readability under any lighting condition.
+- **Color Palette (Light Glassmorphic):**
+  * Canvas Base Background: Light Slate Grey (#f1f5f9)
+  * Panel Backgrounds: Milky Translucent Acrylic (rgba(248, 250, 252, 0.8))
+  * Borders: 1px thin outlines with tactical linear gradients (linear-gradient(135deg, rgba(234, 88, 12, 0.2), rgba(34, 197, 94, 0.15)))
+  * Primary Alert Accent: Fire Orange (#ea580c)
+  * Secondary P2P Accent: Acid Green (#22c55e)
+  * Highlight Warning: Hazard Yellow (#eab308)
+  * Muted Details: Soft Slate Grey (#64748b)
+- **Filters & Shadows:** `backdrop-filter: blur(14px)`, box-shadow: `0 8px 30px rgba(100, 116, 139, 0.08)`.
+- **Typography:** Space Grotesk (tactical bold headings), JetBrains Mono (real-time coordinates, terminals, and CRDT tables).
+
+---
+
+### 2. DYNAMIC INITIAL SPLASH SCREEN (THE ROLE GATEWAY)
+- **Desktop & Mobile Layout:** Centered single-column layout on a soft steel-white radial background gradient.
+- **Title Block:** "Project Mirage Tactical Dashboard" in bold Command Charcoal text, with a dynamic floating satellite/mesh graphics icon.
+- **The Role Selection Grid:** A horizontal row of three large, high-fidelity frosted cards (spanning 4 columns each on desktop; stacking vertically on mobile). Each card has:
+  * **Card 1: "Field Responder"**
+    * Accent: Acid Green border highlight.
+    * Text: "Access the offline Leaflet map, broadcast your active coordinates, establish direct WebRTC data mesh channels, and sync CRDT state."
+    * Action Button: "Activate Mesh Client" - Acid Green background, white text, padding: 12px 20px, hover: scale(1.03) with soft green glow.
+  * **Card 2: "HQ Command"**
+    * Accent: Fire Orange border highlight.
+    * Text: "Map global geofences, draw new active danger zones, monitor responder locations, and supervise system security permissions."
+    * Action Button: "Enter HQ Command" - Fire Orange background, white text, padding: 12px 20px, hover: scale(1.03) with soft orange glow.
+  * **Card 3: "Logistics Sync"**
+    * Accent: Hazard Yellow border highlight.
+    * Text: "Manage shared resource databases, review YATA conflict resolution schemas, check Redis horizontal adapters, and view databases."
+    * Action Button: "Open Logistics Deck" - Hazard Yellow background, white text, padding: 12px 20px, hover: scale(1.03) with soft yellow glow.
+
+---
+
+### 3. ROLE-BASED UI/UX BOARDS (POST-LOGIN PATHS)
+
+#### A. THE HQ COMMAND DECK (POST-LOGIN ROLE: ADMIN/HQ COMMANDER)
+- **Layout Grid:** 12-column grid. Left Navigation Sidebar: 3 columns. Center Data Hub: 9 columns. Inner padding: p-6 (24px). Gap: 20px.
+- **Controls & Widgets:**
+  - **Danger Zone Drawer Toolbar:** Floating map widget containing Leaflet controls (Draw Polygon, Draw Circle, Delete Layer).
+  - **Geofence Action Button:** "Register Danger Zone" (Fire Orange background, white text, padding: 12px 20px).
+  - **Breach Indicator Banner:** High-visibility banner (overlay absolute top-4, left-1/2, -translate-x-1/2) displaying: "WARNING: COORDINATES DETECTED INSIDE DANGER ZONE".
+  - **Security Permissions Console:** Monospace terminal widget listing Node.js 22 experimental permission logs (`--allow-net`, `--allow-fs-read`) with typing effect.
+
+#### B. THE FIELD RESPONDER WORKSPACE (POST-LOGIN ROLE: FIELD RESPONDER)
+- **Layout Grid:** Full-screen Leaflet Map.
+  - **Right Overlay (P2P Mesh Panel):** Width: 320px. Absolute height: calc(100vh - 40px). Positioned top-5, right-5. Milky Translucent Acrylic background.
+- **Controls & Widgets:**
+  - **Live Coordinates HUD:** Real-time display showing current GPS latitude/longitude in bold monospace text in top-left.
+  - **WebRTC Peer List:** Scrollable list displaying active responders in radio range.
+  - **P2P Sync Connection Badge:** Glowing indicator displaying "Mesh Sync Active" (Acid Green) vs "Scanning for Peers" (Hazard Yellow).
+
+#### C. THE LOGISTICS SYNC HUB (POST-LOGIN ROLE: LOGISTICS COORDINATOR)
+- **Layout Grid:** 12-column grid. Sidebar (Supply controls): 4 columns. Main Stage (CRDT table): 8 columns. Inner padding: p-8 (32px).
+- **Controls & Widgets:**
+  - **Yjs Resource Quantities Grid:** Frosted table displaying active supply categories (Water, Medical Kits, Food), quantities, and conflict-free transactional histories.
+  - **Action Button:** "Force CRDT State Merge" (Acid Green gradient background, white text, padding: 12px 24px).
+  - **Redis pub/sub horizontal Adapter Monitor:** Displays stats showing horizontal scale adapters, connected client counts, and server message propagation delays.
+
+---
+
+### 4. FUTURE EXPANSIONS & STRATEGIES
+- **Distributed Mesh Route Map:** Renders secondary hops on the Leaflet map showing how WebRTC packets route through intermediate field agents to reach HQ.
+- **Service Worker Tile Cache Manager:** A toggle panel allowing responders to cache local Map tiles before deploying to network-disconnected zones.
