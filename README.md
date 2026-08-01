@@ -1,29 +1,65 @@
-# Decentralized Disaster Response System (V1)
+# Decentralized Disaster Response System (Project Mirage)
 
-A state-of-the-art emergency management platform designed for resilient coordination during natural disasters.
+A state-of-the-art emergency management platform designed for resilient coordination during natural disasters when centralized cloud and cellular infrastructure fail.
 
-## 🚀 Features
-- **Real-time Geofencing**: Automated alerts when responders enter or exit critical danger zones using MongoDB Geospatial indexing.
-- **P2P Synchronization**: Resilient data syncing using CRDT (Conflict-free Replicated Data Types) to handle intermittent network connectivity.
-- **Live Monitoring Dashboard**: Interactive Map visualization of active zones, responder locations, and resource status.
-- **AI-Assisted Dispatch**: Intelligent simulation and optimization of volunteer resource allocation.
+## 🚀 Key Features
+
+- **Real-time Geofencing Engine**: Automated alerts when responders enter or exit critical danger zones using MongoDB Geospatial (`2dsphere`) indexing.
+- **Offline-First P2P Mesh Sync**: Resilient peer-to-peer data synchronization over WebRTC DataChannels using **Yjs CRDTs** (Conflict-free Replicated Data Types).
+- **Interactive Command Dashboard**: Live Leaflet map visualization of hazard zones, active responders, resource hubs, and AI-optimized evacuation routes.
+- **Mission-Critical Crash Resilience**: Protected by a top-level **React Error Boundary** with automated recovery diagnostics, preventing full dashboard outages during crisis operations.
+- **AI-Assisted Dispatch & SITREP**: Intelligent volunteer resource simulation and automatic FEMA Situation Briefing generation.
 
 ## 🛠 Tech Stack
-- **Monorepo**: Turborepo, pnpm
-- **Frontend**: React, Tailwind CSS, Framer Motion, Leaflet
-- **Backend**: Node.js, Express, Socket.io, MongoDB
-- **Resilience**: P2P Sync, CRDT
 
-## 📦 Setup & Installation
-1. **Prerequisites**: Node.js v18+, pnpm, MongoDB.
-2. **Installation**:
+- **Monorepo Architecture**: Turborepo, npm workspaces (`apps/server`, `apps/web`, `packages/*`)
+- **Frontend**: React 19, TypeScript, Tailwind CSS, Framer Motion, Leaflet Maps, Yjs
+- **Backend API**: Node.js v22, Express, Socket.io, Mongoose (MongoDB 2dsphere), Pino
+- **Resilience Layer**: WebRTC P2P DataChannels, Yjs CRDT logic, React Error Boundaries
+
+## 📦 Monorepo Structure
+
+```text
+Decentralized-Disaster-Response-Resource-Geofencing-System/
+├── apps/
+│   ├── server/           # Express API, Socket.io, MongoDB models & AI services
+│   └── web/              # React 19 Leaflet dashboard, P2P mesh hook & Error Boundary
+└── packages/
+    ├── crdt-logic/       # Yjs CRDT synchronization helpers & useP2PSync hook
+    ├── shared-types/     # TypeScript interfaces & socket event constants
+    ├── shared/           # Reserved workspace package container
+    └── ui/               # Shared UI component library (Badge, Button, Card, StatusDot)
+```
+
+## ⚡ Quick Start
+
+### Prerequisites
+- Node.js >= 22.0.0
+- npm >= 10.0.0
+- MongoDB running locally or accessible via URI
+
+### Installation & Run
+
+1. **Install dependencies**:
    ```bash
-   pnpm install
+   npm install
    ```
-3. **Run Services**:
+
+2. **Configure environment variables**:
    ```bash
-   pnpm run dev
+   cp .env.example .env
+   ```
+
+3. **Start development mode**:
+   ```bash
+   npm run dev
+   ```
+
+4. **Build production bundles**:
+   ```bash
+   npm run build
    ```
 
 ## 🌐 Vision
-Providing a decentralized, open-source infrastructure for humanitarian organizations to coordinate life-saving efforts without relying on centralized cloud providers that often fail during disasters.
+
+Providing a decentralized, open-source infrastructure for humanitarian organizations to coordinate life-saving efforts without relying on single points of failure.

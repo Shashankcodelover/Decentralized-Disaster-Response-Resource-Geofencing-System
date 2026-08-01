@@ -117,8 +117,13 @@ export function useP2PSync(socket: Socket | null) {
         setSyncStatus('synced');
       };
       channel.onmessage = (e) => {
-        const msg = JSON.parse(e.data as string);
-        if (msg.type === 'crdt') applyRemoteUpdate(msg.payload);
+        try {
+          const msg = JSON.parse(e.data as string);
+          if (msg.type === 'crdt') applyRemoteUpdate(msg.payload);
+        } catch {
+          // Ignore malformed P2P messages — do not crash the DataChannel listener
+          console.warn('[P2P] Received malformed DataChannel message, ignoring');
+        }
       };
     }
 

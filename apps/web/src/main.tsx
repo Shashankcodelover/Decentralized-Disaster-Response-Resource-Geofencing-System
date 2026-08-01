@@ -4,12 +4,15 @@ import 'leaflet/dist/leaflet.css';
 import './index.css';
 import App from './App';
 import { ThemeProvider } from './hooks/ThemeContext';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <ThemeProvider>
-      <App />
-    </ThemeProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );
 

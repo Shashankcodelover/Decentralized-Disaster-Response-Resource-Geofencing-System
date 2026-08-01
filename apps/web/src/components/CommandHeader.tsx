@@ -58,7 +58,7 @@ const FIFTY_LANGUAGES = [
 ];
 
 export function CommandHeader({ connected, peerCount, syncStatus, alertCount, onShowSitrep }: Props) {
-  const { styles, themeMode, textSize, lang, toggleTheme, changeTextSize, changeLanguage, triggerHaptic, t } = useAppTheme();
+  const { styles, themeMode, textSize, lang, userRole, changeRole, toggleTheme, changeTextSize, changeLanguage, triggerHaptic, t } = useAppTheme();
   
   const now = new Date();
   const timeStr = now.toUTCString().replace('GMT', 'UTC');
@@ -154,8 +154,8 @@ export function CommandHeader({ connected, peerCount, syncStatus, alertCount, on
           </label>
           <select
             id="role-selector"
-            value={useAppTheme().userRole}
-            onChange={(e) => useAppTheme().changeRole(e.target.value as any)}
+            value={userRole}
+            onChange={(e) => changeRole(e.target.value as any)}
             style={{
               background: themeMode === 'contrast' ? '#000000' : 'rgba(15, 23, 42, 0.8)',
               color: themeMode === 'contrast' ? '#00ff00' : '#f1f5f9',
