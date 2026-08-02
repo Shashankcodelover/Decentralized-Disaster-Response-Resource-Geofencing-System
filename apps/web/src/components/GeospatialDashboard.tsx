@@ -8,7 +8,7 @@ import L from 'leaflet';
 import { useAppTheme } from '../hooks/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+import { API_URL } from '../config';
 
 const SEVERITY_COLORS: Record<string, string> = {
   low: '#22c55e', medium: '#f59e0b', high: '#ef4444', critical: '#a855f7',
@@ -110,8 +110,8 @@ export function GeospatialDashboard({ socket, volunteers, selectedVolunteerId, o
   const [wheelchairMode, setWheelchairMode] = useState(false);
 
   useEffect(() => {
-    fetch(`${API}/api/zones`).then((r) => r.json()).then(setZones).catch(console.error);
-    fetch(`${API}/api/resources`).then((r) => r.json()).then(setHubs).catch(console.error);
+    fetch(`${API_URL}/api/zones`).then((r) => r.json()).then(setZones).catch(console.error);
+    fetch(`${API_URL}/api/resources`).then((r) => r.json()).then(setHubs).catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -143,7 +143,7 @@ export function GeospatialDashboard({ socket, volunteers, selectedVolunteerId, o
       else if (vol.assignedZoneId === 'zone-nyc') targetCoords = [-73.9, 40.75];
 
       if (targetCoords) {
-        fetch(`${API}/api/v1/ai/optimal-route`, {
+        fetch(`${API_URL}/api/v1/ai/optimal-route`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -202,7 +202,7 @@ export function GeospatialDashboard({ socket, volunteers, selectedVolunteerId, o
     };
 
     try {
-      const res = await fetch(`${API}/api/zones`, {
+      const res = await fetch(`${API_URL}/api/zones`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

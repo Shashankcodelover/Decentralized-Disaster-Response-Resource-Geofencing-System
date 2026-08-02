@@ -35,3 +35,35 @@
 1. **Add Unit & Integration Tests**: Write test suites for `@mirage/crdt-logic` and Express API endpoints using Vitest.
 2. **Centralize Environment Configuration**: Create a unified API configuration module to eliminate hardcoded `http://localhost:4000` URLs.
 3. **Refactor Monoliths**: Split translation dictionaries out of `useTheme.ts` into dedicated locale files.
+
+---
+
+# Daily Improvement Log — 2026-08-02
+
+## 🔍 Findings & Weaknesses Identified
+
+1. **Monolithic `useTheme.ts` Hook**: Contained 440+ lines of raw inline translation dictionaries, inflating the hook file to 623 lines and mixing localization state with theme computation logic.
+2. **Duplicated Backend API URLs**: `http://localhost:4000` fallback string was duplicated across `useTheme.ts`, `useSocket.ts`, `App.tsx`, `ResourcePanel.tsx`, and `GeospatialDashboard.tsx`.
+3. **Unnecessary Component Re-renders**: `useTheme.ts` recreated the `styles` object on every render without `useMemo`, causing all consuming components to re-render even when visual parameters were unchanged.
+
+---
+
+## 🛠️ Changes Implemented Today
+
+- **Extracted i18n Locales Module**: Created `apps/web/src/i18n/locales.ts` containing `TRANSLATIONS`, `LANG_LIST`, and a standalone `translate()` helper function. Reduced `useTheme.ts` from 623 lines down to ~175 lines.
+- **Centralized API Config**: Created `apps/web/src/config.ts` exporting `API_URL` read from `import.meta.env.VITE_API_URL ?? 'http://localhost:4000'`. Replaced all inline fallback strings across `useSocket.ts`, `App.tsx`, `ResourcePanel.tsx`, and `GeospatialDashboard.tsx`.
+- **Performance Optimization**: Wrapped `styles` computation in `useMemo` and theme actions in `useCallback` inside `useTheme.ts` to prevent unnecessary component re-renders. Added `VITE_AUTH_SECRET` environment variable support for auto-authentication requests.
+
+---
+
+## ⚠️ What Is Still Weak
+
+- **Zero Test Coverage**: Vitest is installed, but no unit tests exist for `crdt-logic`, API endpoints, or i18n translation helpers.
+- **Large Component Files**: `App.tsx` (~800 lines) and `GeospatialDashboard.tsx` (~620 lines) remain large and handle multiple concerns.
+
+---
+
+## 🎯 Next Session Priorities
+
+1. **Unit Tests for Core Logic**: Write Vitest unit tests for CRDT merge logic (`@mirage/crdt-logic`) and i18n translation fallbacks.
+2. **API Route Tests**: Add integration tests for Express geofencing and resource endpoints using Vitest.
