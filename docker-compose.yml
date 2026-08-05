@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   # --- MongoDB Replica Set (required for change streams & transactions) ---
   mongo-primary:

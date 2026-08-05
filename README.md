@@ -1,6 +1,8 @@
-# Decentralized Disaster Response System (Project Mirage)
+# Decentralized Disaster Response & Resource Geofencing System (Project Mirage)
 
 A state-of-the-art emergency management platform designed for resilient coordination during natural disasters when centralized cloud and cellular infrastructure fail.
+
+---
 
 ## 🚀 Key Features
 
@@ -8,57 +10,76 @@ A state-of-the-art emergency management platform designed for resilient coordina
 - **Offline-First P2P Mesh Sync**: Resilient peer-to-peer data synchronization over WebRTC DataChannels using **Yjs CRDTs** (Conflict-free Replicated Data Types).
 - **Interactive Command Dashboard**: Live Leaflet map visualization of hazard zones, active responders, resource hubs, and AI-optimized evacuation routes.
 - **Mission-Critical Crash Resilience**: Protected by a top-level **React Error Boundary** with automated recovery diagnostics, preventing full dashboard outages during crisis operations.
-- **AI-Assisted Dispatch & SITREP**: Intelligent volunteer resource simulation and automatic FEMA Situation Briefing generation.
+- **Production-Ready Docker Containers**: Full multi-container Docker Compose setup for API, Web (Nginx SPA fallback), MongoDB Replica Set (`rs0`), and Redis.
+
+---
 
 ## 🛠 Tech Stack
 
 - **Monorepo Architecture**: Turborepo, npm workspaces (`apps/server`, `apps/web`, `packages/*`)
 - **Frontend**: React 19, TypeScript, Tailwind CSS, Framer Motion, Leaflet Maps, Yjs
-- **Backend API**: Node.js v22, Express, Socket.io, Mongoose (MongoDB 2dsphere), Pino
+- **Backend API**: Node.js v20/v22, Express, Socket.io, Mongoose (MongoDB 2dsphere), Pino
 - **Resilience Layer**: WebRTC P2P DataChannels, Yjs CRDT logic, React Error Boundaries
+- **Containerization**: Docker, Docker Compose, Nginx Alpine
+
+---
 
 ## 📦 Monorepo Structure
 
 ```text
 Decentralized-Disaster-Response-Resource-Geofencing-System/
 ├── apps/
-│   ├── server/           # Express API, Socket.io, MongoDB models & AI services
-│   └── web/              # React 19 Leaflet dashboard, P2P mesh hook & Error Boundary
-└── packages/
-    ├── crdt-logic/       # Yjs CRDT synchronization helpers & useP2PSync hook
-    ├── shared-types/     # TypeScript interfaces & socket event constants
-    ├── shared/           # Reserved workspace package container
-    └── ui/               # Shared UI component library (Badge, Button, Card, StatusDot)
+│   ├── server/           # Express API, Socket.io, MongoDB models, Dockerfile
+│   └── web/              # React 19 Leaflet dashboard, Nginx SPA config, Dockerfile
+├── packages/
+│   ├── crdt-logic/       # Yjs CRDT synchronization helpers & useP2PSync hook
+│   ├── shared-types/     # TypeScript interfaces & socket event constants
+│   ├── shared/           # Shared utility exports
+│   └── ui/               # Shared UI component library (Badge, Button, Card, StatusDot)
+├── docker-compose.yml    # Multi-container orchestration (API, Web, Mongo, Redis)
+├── SETUP.md              # Detailed setup guide & file inventory breakdown
+├── EXPLAINER.md           # Deep-dive system architecture explainer
+└── CHANGELOG_DAILY.md    # Daily development log & audit history
 ```
+
+---
 
 ## ⚡ Quick Start
 
-### Prerequisites
-- Node.js >= 22.0.0
-- npm >= 10.0.0
-- MongoDB running locally or accessible via URI
+### Option 1: Docker Compose (Recommended — Instant Setup)
 
-### Installation & Run
+```bash
+# 1. Copy environment template
+cp .env.example .env
 
-1. **Install dependencies**:
-   ```bash
-   npm install
-   ```
+# 2. Build & launch containers
+docker-compose up -d --build
+```
 
-2. **Configure environment variables**:
-   ```bash
-   cp .env.example .env
-   ```
+- 🌐 **Web Dashboard UI**: `http://localhost:3000`
+- ⚙️ **API Server Health Check**: `http://localhost:4000/health`
 
-3. **Start development mode**:
-   ```bash
-   npm run dev
-   ```
+### Option 2: Local Development
 
-4. **Build production bundles**:
-   ```bash
-   npm run build
-   ```
+```bash
+# 1. Install dependencies
+npm install
+
+# 2. Start dev mode
+npm run dev
+
+# 3. Run unit & integration tests
+npm test
+```
+
+---
+
+## 📚 Complete Documentation & File Inventory
+
+For a comprehensive guide on environment variables, setup instructions, and a file-by-file inventory of all roles in the project, please see:
+📖 **[SETUP.md](SETUP.md)**
+
+---
 
 ## 🌐 Vision
 

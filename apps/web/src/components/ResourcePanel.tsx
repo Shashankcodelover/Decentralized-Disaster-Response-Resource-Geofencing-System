@@ -5,7 +5,7 @@ import type { ResourceHub } from '@mirage/shared-types';
 import { SOCKET_EVENTS } from '@mirage/shared-types';
 import { useAppTheme } from '../hooks/ThemeContext';
 
-const API = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
+import { API_URL } from '../config';
 
 const CATEGORY_ICONS: Record<string, string> = {
   food: '🍱', medical: '🏥', personnel: '👤', equipment: '🔧',
@@ -22,7 +22,7 @@ export function ResourcePanel({ socket }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`${API}/api/resources`).then((r) => r.json()).then((data: ResourceHub[]) => {
+    fetch(`${API_URL}/api/resources`).then((r) => r.json()).then((data: ResourceHub[]) => {
       setHubs(data);
       if (data.length > 0) setExpanded(data[0]._id);
     }).catch(console.error);

@@ -11,6 +11,7 @@ import { useSocket } from './hooks/useSocket';
 import { useP2PSync } from '@mirage/crdt-logic';
 import { useVolunteerSim } from './hooks/useVolunteerSim';
 import { useAppTheme } from './hooks/ThemeContext';
+import { API_URL } from './config';
 import type { GeofenceAlert } from '@mirage/shared-types';
 
 export default function App() {
@@ -67,7 +68,6 @@ export default function App() {
   useEffect(() => {
     if (showSitrep) {
       setSitrepText('Loading FEMA ICS briefing...');
-      const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:4000';
       fetch(`${API_URL}/api/v1/ai/sitrep`)
         .then((res) => res.text())
         .then((text) => setSitrepText(text))
