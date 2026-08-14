@@ -5,7 +5,8 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "test": "tsx --test src/disasterSystem.test.ts src/competitiveTier.test.ts src/globalLeadership.test.ts src/loraUartGateway.test.ts src/atmosphericPlumeEngine.test.ts src/acousticSosDetector.test.ts src/pqcHybridSigner.test.ts src/v9_to_v15_engines.test.ts src/ir11_triage.test.ts src/ir11_evacuation.test.ts src/ir11_cot.test.ts src/ir11_lora.test.ts src/ir11_dtn.test.ts src/ir11_drone.test.ts src/ir11_governor.test.ts src/ir11_plume.test.ts src/ir11_seismic.test.ts src/ir11_microgrid.test.ts src/ir11_crdt.test.ts"
+    "test": "tsx --test src/disasterSystem.test.ts src/competitiveTier.test.ts src/globalLeadership.test.ts src/loraUartGateway.test.ts src/atmosphericPlumeEngine.test.ts src/acousticSosDetector.test.ts src/pqcHybridSigner.test.ts src/v9_to_v15_engines.test.ts src/ir11_triage.test.ts src/ir11_evacuation.test.ts src/ir11_cot.test.ts src/ir11_lora.test.ts src/ir11_dtn.test.ts src/ir11_drone.test.ts src/ir11_governor.test.ts src/ir11_plume.test.ts src/ir11_seismic.test.ts src/ir11_microgrid.test.ts src/ir11_crdt.test.ts src/ir15_dtnEpidemic.test.ts src/ir15_satelliteRelay.test.ts src/ir15_uavSwarmVoronoi.test.ts src/ir15_waterBiohazard.test.ts src/ir15_disasterVoucher.test.ts"
+
 
 
 
