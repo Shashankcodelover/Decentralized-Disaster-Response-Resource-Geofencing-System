@@ -108,9 +108,15 @@ export class DTNEpidemicRouter {
     }
 
     /**
-     * Acknowledges bundle delivery and purges all copies from store.
+     * Acknowledges bundle delivery and purges all copies from store with bounded LRU eviction.
      */
-    acknowledgeDelivery(bundleId: string) {
+    acknowledgeDelivery(bundleId: string, maxAckHistory: number = 10000) {
+        // Enforce bounded LRU tombstone cache to prevent memory leaks
+        if (this.deliveryAcks.size >= maxAckHistory) {
+            const oldestAck = this.deliveryAcks.values().next().value;
+            if (oldestAck) this.deliveryAcks.delete(oldestAck);
+        }
+
         this.deliveryAcks.add(bundleId);
         const bundle = this.bundleStore.get(bundleId);
         if (bundle) {
@@ -119,6 +125,7 @@ export class DTNEpidemicRouter {
         }
         return { success: true, bundleId, status: 'DELIVERY_ACK_RECORDED' };
     }
+
 
     getStats() {
         return {
