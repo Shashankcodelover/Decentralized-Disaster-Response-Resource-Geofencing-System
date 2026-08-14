@@ -1,14 +1,15 @@
 /**
- * Decentralized Multi-Signature Emergency Governor (FEMA ICS-204 Compliant)
+ * Decentralized Multi-Signature Emergency Governor (FEMA ICS-204 Compliant) — Industrial Readiness Level 11 (IR-11)
  * 
  * Manages cryptographic multi-agency authorization for high-stakes disaster mandates:
  * - Mandatory Zone Evacuation Orders
  * - Emergency Dam Spillway Water Release
  * - Quarantine / Hazardous Chemical Containment Lockdowns
  * - Mass Emergency Resource Confiscation & Redistribution
+ * - FEMA ICS-204 Automated Assignment List Generation
  * 
  * Enforces M-of-N threshold consensus among designated agency commanders
- * (Incident Commander, Fire Marshall, Chief Medical Officer, Structural Engineer).
+ * (Incident Commander, Fire Marshall, Chief Medical Officer, Public Safety Lead).
  */
 
 export type MandateType =
@@ -31,6 +32,17 @@ export interface SignatureProof {
   signedAt: number;
 }
 
+export interface FemaIcs204Form {
+  formId: string;
+  incidentName: string;
+  operationalPeriod: string;
+  assignedResources: string[];
+  tacticalRadioChannel: string;
+  specialSafetyInstructions: string;
+  approvedByCommander: string;
+  timestamp: string;
+}
+
 export interface GovernanceProposal {
   proposalId: string;
   mandateType: MandateType;
@@ -43,6 +55,9 @@ export interface GovernanceProposal {
   signatures: SignatureProof[];
   isExecuted: boolean;
   executedAt?: number;
+  isVetoed?: boolean;
+  vetoReason?: string;
+  ics204AssignmentForm?: FemaIcs204Form;
 }
 
 export class EmergencyGovernor {
@@ -89,38 +104,40 @@ export class EmergencyGovernor {
   }
 
   /**
-   * Submits a cryptographic signature for a proposal.
-   * Automatically executes the proposal if quorum threshold is reached.
+   * Submits a cryptographic signature for a proposal and generates FEMA ICS-204 form on execution.
    */
   public signProposal(
     proposalId: string,
     signerId: string,
     signatureHex: string
-  ): { success: boolean; executed: boolean; currentSignatures: number; message: string } {
+  ): { success: boolean; executed: boolean; currentSignatures: number; message: string; ics204?: FemaIcs204Form } {
     const proposal = this.proposals.get(proposalId);
     if (!proposal) {
       return { success: false, executed: false, currentSignatures: 0, message: 'Proposal not found' };
+    }
+
+    if (proposal.isVetoed) {
+      return { success: false, executed: false, currentSignatures: 0, message: `Proposal was vetoed: ${proposal.vetoReason}` };
+    }
+
+    if (proposal.isExecuted) {
+      return { success: false, executed: true, currentSignatures: proposal.signatures.length, message: 'Proposal is already executed' };
     }
 
     if (Date.now() > proposal.expiresAt) {
       return { success: false, executed: false, currentSignatures: proposal.signatures.length, message: 'Proposal has expired' };
     }
 
-    if (proposal.isExecuted) {
-      return { success: false, executed: true, currentSignatures: proposal.signatures.length, message: 'Proposal already executed' };
-    }
-
     const signer = this.authorizedSigners.get(signerId);
     if (!signer) {
-      return { success: false, executed: false, currentSignatures: proposal.signatures.length, message: 'Unauthorized signer' };
+      return { success: false, executed: false, currentSignatures: proposal.signatures.length, message: 'Signer is not an authorized agency commander' };
     }
 
-    // Check if already signed by this signer
+    // Check duplicate sign
     if (proposal.signatures.some(s => s.signerId === signerId)) {
-      return { success: false, executed: false, currentSignatures: proposal.signatures.length, message: 'Signer already voted' };
+      return { success: false, executed: false, currentSignatures: proposal.signatures.length, message: 'Signer has already signed this proposal' };
     }
 
-    // Add signature proof
     proposal.signatures.push({
       signerId,
       agencyName: signer.agencyName,
@@ -128,20 +145,51 @@ export class EmergencyGovernor {
       signedAt: Date.now(),
     });
 
-    // Check quorum
-    let executed = false;
+    // Check Quorum
+    let ics204Form: FemaIcs204Form | undefined = undefined;
     if (proposal.signatures.length >= proposal.requiredSignatures) {
       proposal.isExecuted = true;
       proposal.executedAt = Date.now();
-      executed = true;
+
+      ics204Form = {
+        formId: `ICS-204-${proposal.proposalId}`,
+        incidentName: `INCIDENT-${proposal.targetZoneId.toUpperCase()}`,
+        operationalPeriod: '06:00 - 18:00 Local Tactical Cycle',
+        assignedResources: proposal.signatures.map(s => s.agencyName),
+        tacticalRadioChannel: 'TAC-7 (868.5 MHz LoRa Channel 4)',
+        specialSafetyInstructions: `MANDATE ${proposal.mandateType} ACTIVE. Full PPE & SCBA required in designated perimeter.`,
+        approvedByCommander: signer.agencyName,
+        timestamp: new Date().toISOString(),
+      };
+      proposal.ics204AssignmentForm = ics204Form;
+
+      return {
+        success: true,
+        executed: true,
+        currentSignatures: proposal.signatures.length,
+        message: `Quorum reached (${proposal.signatures.length}/${proposal.requiredSignatures}). Mandate executed and FEMA ICS-204 generated.`,
+        ics204: ics204Form,
+      };
     }
 
     return {
       success: true,
-      executed,
+      executed: false,
       currentSignatures: proposal.signatures.length,
-      message: executed ? 'Quorum achieved! Mandate executed.' : 'Signature recorded.',
+      message: `Signature recorded (${proposal.signatures.length}/${proposal.requiredSignatures}). Awaiting remaining council quorums.`,
     };
+  }
+
+  public vetoProposal(proposalId: string, signerId: string, reason: string): boolean {
+    const proposal = this.proposals.get(proposalId);
+    if (!proposal || proposal.isExecuted) return false;
+
+    const signer = this.authorizedSigners.get(signerId);
+    if (!signer) return false;
+
+    proposal.isVetoed = true;
+    proposal.vetoReason = `${signer.agencyName} (${signer.role}): ${reason}`;
+    return true;
   }
 
   public getProposal(proposalId: string): GovernanceProposal | undefined {

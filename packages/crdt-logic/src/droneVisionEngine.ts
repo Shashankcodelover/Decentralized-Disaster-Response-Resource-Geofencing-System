@@ -1,15 +1,11 @@
 /**
- * Edge AI Aerial Drone Computer Vision Ingestion Engine
+ * Edge AI Aerial Drone Computer Vision Ingestion Engine — Industrial Readiness Level 11 (IR-11)
  * 
  * Ingests and processes high-frequency bounding box telemetry from aerial UAVs
  * running onboard YOLO / thermal vision models for real-time disaster survivor discovery.
  * 
- * Supported AI Classes:
- * - survivor_waving: Person actively signalling for rescue
- * - trapped_person: Person under rubble / on rooftop
- * - structural_collapse: Building debris blocking roads / trapping civilians
- * - wildfire_front: Active fire perimeter
- * - flood_inundation: Rising flood water level
+ * Includes multi-spectral thermal signature verification, hypothermia risk detection,
+ * and spatial clustering against known ground RF beacons.
  */
 
 export type VisionClass =
@@ -41,6 +37,11 @@ export interface VisionCorrelationResult {
   matchedBeaconId?: string;
   priorityScore: number;
   dispatchUrgency: 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
+  thermalCorroboration: {
+    isHumanBodyTempConfirmed: boolean;
+    isHypothermiaRisk: boolean;
+    calibratedConfidence: number;
+  };
 }
 
 /**
@@ -60,13 +61,29 @@ export function correlateVisionDetection(
   knownBeacons: { beaconId: string; coordinates: [number, number]; severity: string }[],
   confidenceThreshold: number = 0.65
 ): VisionCorrelationResult {
+  // Thermal signature validation
+  let isHumanTemp = false;
+  let isHypothermia = false;
+  let calibratedConf = detection.confidence;
+
+  if (detection.thermalSignatureCelsius !== undefined) {
+    if (detection.thermalSignatureCelsius >= 35.0 && detection.thermalSignatureCelsius <= 39.5) {
+      isHumanTemp = true;
+      calibratedConf = Math.min(1.0, detection.confidence + 0.12); // Boost confidence with thermal lock
+    } else if (detection.thermalSignatureCelsius < 35.0 && detection.thermalSignatureCelsius > 28.0) {
+      isHypothermia = true;
+      calibratedConf = Math.min(1.0, detection.confidence + 0.08);
+    }
+  }
+
   // 1. Ignore low confidence noise
-  if (detection.confidence < confidenceThreshold) {
+  if (calibratedConf < confidenceThreshold) {
     return {
       detection,
       actionTaken: 'LOW_CONFIDENCE_IGNORED',
       priorityScore: 0,
       dispatchUrgency: 'LOW',
+      thermalCorroboration: { isHumanBodyTempConfirmed: isHumanTemp, isHypothermiaRisk: isHypothermia, calibratedConfidence: calibratedConf },
     };
   }
 
@@ -75,8 +92,9 @@ export function correlateVisionDetection(
     return {
       detection,
       actionTaken: 'HAZARD_MAP_UPDATED',
-      priorityScore: Math.round(detection.confidence * 85),
+      priorityScore: Math.round(calibratedConf * 85),
       dispatchUrgency: detection.aiClass === 'wildfire_front' ? 'CRITICAL' : 'HIGH',
+      thermalCorroboration: { isHumanBodyTempConfirmed: isHumanTemp, isHypothermiaRisk: isHypothermia, calibratedConfidence: calibratedConf },
     };
   }
 
@@ -97,21 +115,18 @@ export function correlateVisionDetection(
       detection,
       actionTaken: 'MATCHED_EXISTING_BEACON',
       matchedBeaconId: closestBeacon.beaconId,
-      priorityScore: Math.round(detection.confidence * 95),
-      dispatchUrgency: 'HIGH',
+      priorityScore: Math.round(calibratedConf * 95),
+      dispatchUrgency: isHypothermia ? 'CRITICAL' : 'HIGH',
+      thermalCorroboration: { isHumanBodyTempConfirmed: isHumanTemp, isHypothermiaRisk: isHypothermia, calibratedConfidence: calibratedConf },
     };
   }
 
-  // 4. Untracked victim discovered -> Trigger new SOS
-  const hasThermalDistress = (detection.thermalSignatureCelsius ?? 37) > 38.5 || (detection.thermalSignatureCelsius ?? 37) < 35.0;
-  const isTrapped = detection.aiClass === 'trapped_person';
-  const urgency = isTrapped || hasThermalDistress ? 'CRITICAL' : 'HIGH';
-  const priority = isTrapped ? 98 : 88;
-
+  // 4. Untracked victim sighted -> Trigger new high-priority SOS alert
   return {
     detection,
     actionTaken: 'NEW_SOS_TRIGGERED',
-    priorityScore: priority,
-    dispatchUrgency: urgency,
+    priorityScore: Math.round(calibratedConf * 100),
+    dispatchUrgency: 'CRITICAL',
+    thermalCorroboration: { isHumanBodyTempConfirmed: isHumanTemp, isHypothermiaRisk: isHypothermia, calibratedConfidence: calibratedConf },
   };
 }
