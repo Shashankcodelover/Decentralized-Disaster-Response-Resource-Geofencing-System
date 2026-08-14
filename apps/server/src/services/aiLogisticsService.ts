@@ -169,9 +169,10 @@ ${criticalItems.length > 0
     // 4. Generate Cryptographic Audit Trail Signature for regulatory compliance
     const crypto = require('crypto');
     const checksum = crypto.createHash('sha256').update(sitrep).digest('hex');
-    const signature = crypto.createHmac('sha256', 'mirage-compliance-secret-signing-key')
-      .update(sitrep)
-      .digest('base64');
+    const signingKey = process.env.COMPLIANCE_SIGNING_KEY;
+    const signature = signingKey
+      ? crypto.createHmac('sha256', signingKey).update(sitrep).digest('base64')
+      : '[UNSIGNED — COMPLIANCE_SIGNING_KEY not configured]';
 
     sitrep += `
 -----------------------------------------------------------------

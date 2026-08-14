@@ -9,6 +9,7 @@ interface Props {
   syncStatus: SyncStatus;
   alertCount: number;
   onShowSitrep: () => void;
+  onShowTacticalHub?: () => void;
 }
 
 // 50+ languages mock list for high-impact CEO checklist compliance
@@ -57,7 +58,7 @@ const FIFTY_LANGUAGES = [
   { code: 'is', name: 'Íslenska' },
 ];
 
-export function CommandHeader({ connected, peerCount, syncStatus, alertCount, onShowSitrep }: Props) {
+export function CommandHeader({ connected, peerCount, syncStatus, alertCount, onShowSitrep, onShowTacticalHub }: Props) {
   const { styles, themeMode, textSize, lang, userRole, changeRole, toggleTheme, changeTextSize, changeLanguage, triggerHaptic, t } = useAppTheme();
   
   const now = new Date();
@@ -248,6 +249,32 @@ export function CommandHeader({ connected, peerCount, syncStatus, alertCount, on
         }}>
           {t('crdt')}: {syncStatus.toUpperCase()}
         </div>
+
+        {/* Tactical Hub Button */}
+        {onShowTacticalHub && (
+          <button
+            onClick={() => {
+              onShowTacticalHub();
+              triggerHaptic('success');
+            }}
+            style={{
+              padding: '4px 10px',
+              background: themeMode === 'contrast' ? '#ffcc00' : 'rgba(56, 189, 248, 0.2)',
+              color: themeMode === 'contrast' ? '#000000' : '#38bdf8',
+              border: `1px solid ${themeMode === 'contrast' ? '#000000' : '#38bdf8'}`,
+              borderRadius: 4,
+              fontSize: 10,
+              fontWeight: 800,
+              cursor: 'pointer',
+              textTransform: 'uppercase',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+            }}
+          >
+            🛡️ TACTICAL HUB
+          </button>
+        )}
 
         {/* AI SITREP Generator Button */}
         <button

@@ -563,41 +563,41 @@ export function useTheme() {
     return TRANSLATIONS[lang]?.[key] || TRANSLATIONS['en']?.[key] || key;
   };
 
-  // Dynamic style builder depending on theme modes, text sizes, and device performance.
+      // Dynamic style builder depending on theme modes, text sizes, and device performance.
   const getThemeStyles = () => {
     const baseFontSize = textSize === 'sm' ? '12px' : textSize === 'md' ? '14px' : '17px';
-    const isContrast = themeMode === 'contrast';
+    const isContrast = themeMode === 'contrast'; // Now acts as Daylight High Contrast mode
     
     return {
       fontSize: baseFontSize,
-      fontFamily: isContrast ? '"Courier New", Courier, monospace' : 'system-ui, -apple-system, sans-serif',
-      appBg: isContrast ? '#000000' : '#040b16',
-      textColor: isContrast ? '#00ff00' : '#e2e8f0',
-      borderColor: isContrast ? '#00ff00' : '#1e3a5f',
-      borderWidth: isContrast ? '2px' : '1px',
+      fontFamily: isContrast ? 'Arial, Helvetica, sans-serif' : 'system-ui, -apple-system, sans-serif',
+      appBg: isContrast ? '#ffffff' : '#040b16',
+      textColor: isContrast ? '#000000' : '#e2e8f0',
+      borderColor: isContrast ? '#000000' : '#1e3a5f',
+      borderWidth: isContrast ? '3px' : '1px',
       
       // Panel styling
       panelBg: isContrast 
-        ? '#000000' 
+        ? '#ffffff' 
         : (isLowEndDevice ? 'rgba(7, 15, 30, 0.98)' : 'rgba(7, 15, 30, 0.65)'),
       panelBackdrop: isLowEndDevice || isContrast ? 'none' : 'blur(15px)',
       
       // Dynamic buttons
-      btnPrimaryBg: isContrast ? 'transparent' : '#2563eb',
-      btnPrimaryColor: isContrast ? '#00ff00' : '#ffffff',
-      btnPrimaryBorder: isContrast ? '2px solid #00ff00' : '1px solid #2563eb',
+      btnPrimaryBg: isContrast ? '#ffcc00' : '#2563eb', // High-viz yellow
+      btnPrimaryColor: isContrast ? '#000000' : '#ffffff',
+      btnPrimaryBorder: isContrast ? '3px solid #000000' : '1px solid #2563eb',
       
-      btnDangerBg: isContrast ? 'transparent' : '#dc2626',
-      btnDangerColor: isContrast ? '#ff3333' : '#ffffff',
-      btnDangerBorder: isContrast ? '2px solid #ff3333' : '1px solid #dc2626',
+      btnDangerBg: isContrast ? '#ff0000' : '#dc2626',
+      btnDangerColor: isContrast ? '#ffffff' : '#ffffff',
+      btnDangerBorder: isContrast ? '3px solid #000000' : '1px solid #dc2626',
 
-      headerBg: isContrast ? '#000000' : 'linear-gradient(90deg, #020c1b 0%, #0a1628 50%, #020c1b 100%)',
-      statsBarBg: isContrast ? '#000000' : '#040e1c',
+      headerBg: isContrast ? '#ffffff' : 'linear-gradient(90deg, #020c1b 0%, #0a1628 50%, #020c1b 100%)',
+      statsBarBg: isContrast ? '#f3f4f6' : '#040e1c',
       
-      glowColor: isContrast ? 'rgba(0, 255, 0, 0.6)' : 'rgba(56, 189, 248, 0.5)',
+      glowColor: isContrast ? 'transparent' : 'rgba(56, 189, 248, 0.5)',
       
       glowShadow: isContrast 
-        ? '0 0 10px #00ff00' 
+        ? '4px 4px 0px #000000' // Hard shadow for high contrast UI
         : '0 4px 30px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1)',
     };
   };

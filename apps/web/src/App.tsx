@@ -7,6 +7,8 @@ import { CommandHeader } from './components/CommandHeader';
 import { StatsBar } from './components/StatsBar';
 import { VolunteerPanel } from './components/VolunteerPanel';
 import { MeshTopology } from './components/MeshTopology';
+import { CommsPanel } from './components/CommsPanel';
+import { TacticalHub } from './components/TacticalHub';
 import { useSocket } from './hooks/useSocket';
 import { useP2PSync } from '@mirage/crdt-logic';
 import { useVolunteerSim } from './hooks/useVolunteerSim';
@@ -16,15 +18,17 @@ import type { GeofenceAlert } from '@mirage/shared-types';
 export default function App() {
   const { socket, connected } = useSocket();
   const { peerCount, syncStatus } = useP2PSync(socket);
-  const { styles, themeMode, lang, triggerHaptic, toggleTheme, t } = useAppTheme();
+  const appTheme = useAppTheme();
+  const { styles, themeMode, lang, triggerHaptic, toggleTheme, t } = appTheme;
   
   const [alerts, setAlerts] = useState<GeofenceAlert[]>([]);
-  const [activePanel, setActivePanel] = useState<'resources' | 'alerts' | 'volunteers' | 'mesh'>('volunteers');
+  const [activePanel, setActivePanel] = useState<'resources' | 'alerts' | 'volunteers' | 'mesh' | 'comms'>('volunteers');
   const [showSosSlider, setShowSosSlider] = useState(false);
   const [sosTriggered, setSosTriggered] = useState(false);
   const [sosProgress, setSosProgress] = useState(0);
 
-  // FEMA SITREP states
+  // Tactical Hub & FEMA SITREP states
+  const [showTacticalHub, setShowTacticalHub] = useState(false);
   const [showSitrep, setShowSitrep] = useState(false);
   const [sitrepText, setSitrepText] = useState('');
 
@@ -279,6 +283,7 @@ export default function App() {
         syncStatus={syncStatus} 
         alertCount={alerts.length} 
         onShowSitrep={() => setShowSitrep(true)}
+        onShowTacticalHub={() => setShowTacticalHub(true)}
       />
       <StatsBar />
 
@@ -682,7 +687,7 @@ export default function App() {
 
           {/* Thumb-reachable Tabs */}
           <div style={{ display: 'flex', borderBottom: `${styles.borderWidth} solid ${styles.borderColor}`, flexShrink: 0 }}>
-            {(['volunteers', 'resources', 'alerts', 'mesh'] as const).map((tab) => (
+            {(['volunteers', 'resources', 'alerts', 'mesh', 'comms'] as const).map((tab) => (
               <button 
                 key={tab} 
                 onClick={() => {
@@ -730,6 +735,7 @@ export default function App() {
             {activePanel === 'resources' && <ResourcePanel socket={socket} />}
             {activePanel === 'alerts' && <AlertFeed alerts={alerts} onDismiss={(i) => setAlerts(p => p.filter((_, idx) => idx !== i))} />}
             {activePanel === 'mesh' && <MeshTopology connected={connected} peerCount={peerCount} />}
+            {activePanel === 'comms' && <CommsPanel socket={socket} volunteers={volunteers} token={token} />}
           </div>
         </div>
       </div>
@@ -803,6 +809,13 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Tactical Interoperability & Command Hub Modal */}
+      <TacticalHub 
+        theme={appTheme} 
+        isOpen={showTacticalHub} 
+        onClose={() => setShowTacticalHub(false)} 
+      />
     </div>
   );
 }

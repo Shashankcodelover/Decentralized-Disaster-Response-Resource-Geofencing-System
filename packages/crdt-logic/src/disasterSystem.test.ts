@@ -10,9 +10,9 @@ test('calculateDistanceKm returns accurate distance between two GPS coordinates'
 });
 
 test('anonymizeCoordinates blurs precise GPS location into grid buckets', () => {
-  const anon = anonymizeCoordinates(12.971593, 77.594562, 0.001);
-  assert.equal(anon.blurredLat, 12.972);
+  const anon = anonymizeCoordinates('user_1', 77.594562, 12.971593, 0.001);
   assert.equal(anon.blurredLng, 77.595);
+  assert.equal(anon.blurredLat, 12.972);
 });
 
 test('isWithinGeofence identifies victim inside zone boundary', () => {

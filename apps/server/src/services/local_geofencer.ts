@@ -156,6 +156,7 @@ export function prioritizeReliefRequests(requests: ReliefRequest[]): ReliefReque
 /**
  * 4. Geo-Targeted Alert Broadcaster
  * Identifies if a responder's current position is within warning distance to any critical hazard zone.
+ * Checks against ALL polygon vertices and the centroid — not just vertex[0].
  */
 export function broadcastGeofenceAlerts(
     responderLocation: Point,
@@ -165,17 +166,65 @@ export function broadcastGeofenceAlerts(
     const warnings: string[] = [];
 
     activeZones.forEach(zone => {
-        // Simple distance check to the first vertex (centroid proxy)
-        if (zone.polygon.length > 0) {
-            const vertex = zone.polygon[0];
-            const dist = getDistanceKm(responderLocation.latitude, responderLocation.longitude, vertex.latitude, vertex.longitude);
-            if (dist <= safetyDistanceKm) {
-                warnings.push(`[PROXIMITY WARNING] Active Hazard "${zone.name}" is only ${dist.toFixed(1)} km away. Danger Level: ${zone.dangerLevel.toUpperCase()}`);
-            }
+        if (zone.polygon.length === 0) return;
+
+        // Calculate the true polygon centroid
+        const centroid = calculatePolygonCentroid(zone.polygon);
+
+        // Find the minimum distance across ALL vertices + centroid
+        let minDist = Infinity;
+
+        // Check distance to centroid
+        const centroidDist = getDistanceKm(
+            responderLocation.latitude, responderLocation.longitude,
+            centroid.latitude, centroid.longitude
+        );
+        minDist = Math.min(minDist, centroidDist);
+
+        // Check distance to EVERY vertex (catches irregular/elongated polygons)
+        for (const vertex of zone.polygon) {
+            const dist = getDistanceKm(
+                responderLocation.latitude, responderLocation.longitude,
+                vertex.latitude, vertex.longitude
+            );
+            minDist = Math.min(minDist, dist);
+        }
+
+        // Also check distance to edge midpoints for large polygon edges
+        for (let i = 0; i < zone.polygon.length; i++) {
+            const a = zone.polygon[i];
+            const b = zone.polygon[(i + 1) % zone.polygon.length];
+            const midLat = (a.latitude + b.latitude) / 2;
+            const midLng = (a.longitude + b.longitude) / 2;
+            const midDist = getDistanceKm(
+                responderLocation.latitude, responderLocation.longitude,
+                midLat, midLng
+            );
+            minDist = Math.min(minDist, midDist);
+        }
+
+        if (minDist <= safetyDistanceKm) {
+            warnings.push(`[PROXIMITY WARNING] Active Hazard "${zone.name}" is only ${minDist.toFixed(1)} km away. Danger Level: ${zone.dangerLevel.toUpperCase()}`);
         }
     });
 
     return warnings;
+}
+
+/**
+ * Calculates the centroid (geometric center) of a polygon.
+ */
+function calculatePolygonCentroid(polygon: Point[]): Point {
+    let latSum = 0;
+    let lngSum = 0;
+    for (const p of polygon) {
+        latSum += p.latitude;
+        lngSum += p.longitude;
+    }
+    return {
+        latitude: latSum / polygon.length,
+        longitude: lngSum / polygon.length,
+    };
 }
 
 function getDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {

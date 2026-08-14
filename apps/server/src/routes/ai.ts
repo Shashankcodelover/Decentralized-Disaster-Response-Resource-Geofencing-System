@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { calculateOptimalRoute } from '../services/routingService';
 import { predictResourceBurnRates, generateFemaSitrep } from '../services/aiLogisticsService';
 import { validate } from '../middleware/validate';
+import { requireAuth, requireRole } from '../middleware/auth';
 import { z } from 'zod';
 import logger from '../logger';
 
@@ -17,7 +18,7 @@ const optimalRouteSchema = z.object({
  * POST /api/v1/ai/optimal-route
  * Returns the shortest path avoiding active high/critical danger zones.
  */
-aiRouter.post('/optimal-route', validate(optimalRouteSchema), async (req, res) => {
+aiRouter.post('/optimal-route', requireAuth, validate(optimalRouteSchema), async (req, res) => {
   try {
     const { from, to, wheelchair } = req.body as { from: [number, number]; to: [number, number]; wheelchair?: boolean };
     const path = await calculateOptimalRoute(from, to, wheelchair);
@@ -32,7 +33,7 @@ aiRouter.post('/optimal-route', validate(optimalRouteSchema), async (req, res) =
  * GET /api/v1/ai/predictive-burn
  * Returns predicted depletion logs for all active hubs.
  */
-aiRouter.get('/predictive-burn', async (_req, res) => {
+aiRouter.get('/predictive-burn', requireAuth, async (_req, res) => {
   try {
     const predictions = await predictResourceBurnRates();
     res.json(predictions);
@@ -46,7 +47,7 @@ aiRouter.get('/predictive-burn', async (_req, res) => {
  * GET /api/v1/ai/sitrep
  * Returns the auto-generated FEMA Incident Situation Briefing report.
  */
-aiRouter.get('/sitrep', async (_req, res) => {
+aiRouter.get('/sitrep', requireAuth, requireRole('admin', 'coordinator'), async (_req, res) => {
   try {
     const report = await generateFemaSitrep();
     res.set('Content-Type', 'text/plain');

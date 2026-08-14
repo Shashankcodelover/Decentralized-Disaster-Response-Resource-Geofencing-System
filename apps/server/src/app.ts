@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import crypto from 'crypto';
+import mongoose from 'mongoose';
 import { zonesRouter } from './routes/zones';
 import { resourcesRouter } from './routes/resources';
 import { respondersRouter } from './routes/responders';
@@ -9,7 +10,25 @@ import { geofenceRouter } from './routes/geofence';
 import { aiRouter } from './routes/ai';
 import { commsRouter } from './routes/comms';
 import { iotRouter } from './routes/iot';
+import { transferRouter, timelineRouter } from './routes/transfers';
+import { cotRouter } from './routes/cot';
+import { triageRouter } from './routes/triage';
+import { dronePlanningRouter } from './routes/dronePlanning';
+import { forecastRouter } from './routes/forecast';
+import { dtnRouter } from './routes/dtn';
+import { evacuationRouter } from './routes/evacuation';
+import { droneVisionRouter } from './routes/droneVision';
+import { governanceRouter } from './routes/governance';
+import { auditBenchmarkRouter } from './routes/auditBenchmark';
+import { loraUartRouter } from './routes/loraUart';
+import { plumeRouter } from './routes/plume';
+import { acousticRouter } from './routes/acoustic';
+import { pqcRouter } from './routes/pqc';
 import { issueToken } from './middleware/auth';
+
+
+
+
 import { sanitize } from './middleware/sanitize';
 import { auditLog } from './middleware/audit';
 import { metricsMiddleware, getMetrics } from './middleware/metrics';
@@ -70,42 +89,77 @@ app.use((req, res, next) => {
   next();
 });
 
-// --- RATE LIMITER ---
+// --- CLIENT SUBNET EXTRACTION FOR IPv6 PROXY PROTECTION ---
+export function getClientSubnet(ip: string): string {
+  if (!ip || ip === 'unknown') return 'unknown';
+  const cleanIp = ip.replace(/^::ffff:/, '');
+  if (cleanIp.includes(':')) {
+    // IPv6: cluster by /64 routing prefix to prevent rotating-address bypasses
+    const parts = cleanIp.split(':');
+    return parts.slice(0, 4).join(':');
+  }
+  return cleanIp;
+}
+
+// --- NON-BLOCKING RATE LIMITER ---
 const rateLimitMap = new Map<string, number[]>();
 const RATE_LIMIT_WINDOW = 60_000; // 1 minute
 const RATE_LIMIT_READ = 200;      // reads per minute
 const RATE_LIMIT_WRITE = 50;      // writes per minute
+const MAX_RATE_KEYS = 50_000;
 
 app.use((req, res, next) => {
-  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  const rawIp = req.ip || req.socket.remoteAddress || 'unknown';
+  const subnet = getClientSubnet(rawIp);
   const isWrite = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method);
-  const key = `${ip}:${isWrite ? 'w' : 'r'}`;
+  const key = `${subnet}:${isWrite ? 'w' : 'r'}`;
   const limit = isWrite ? RATE_LIMIT_WRITE : RATE_LIMIT_READ;
   const now = Date.now();
+  
   const timestamps = rateLimitMap.get(key) || [];
   const valid = timestamps.filter(t => now - t < RATE_LIMIT_WINDOW);
+  
   if (valid.length >= limit) {
-    logger.warn({ ip, method: req.method, path: req.path }, 'Rate limit exceeded');
+    logger.warn({ subnet, method: req.method, path: req.path }, 'Rate limit exceeded');
     return res.status(429).json({ error: 'Too many requests. Please slow down.' });
   }
+
+  // Prevent unbounded memory growth under DDoS
+  if (rateLimitMap.size >= MAX_RATE_KEYS && !rateLimitMap.has(key)) {
+    const firstKey = rateLimitMap.keys().next().value;
+    if (firstKey) rateLimitMap.delete(firstKey);
+  }
+
   valid.push(now);
   rateLimitMap.set(key, valid);
   next();
 });
 
-// --- Periodic cleanup of rate limit map to prevent memory leak ---
+// Incremental lazy cleanup — cleans in 500-key micro-slices to never block the Node.js event loop
+let cleanupIterator: IterableIterator<[string, number[]]> | null = null;
 setInterval(() => {
+  if (rateLimitMap.size === 0) return;
+  if (!cleanupIterator) cleanupIterator = rateLimitMap.entries();
+  
   const now = Date.now();
-  for (const [key, timestamps] of rateLimitMap.entries()) {
+  let processed = 0;
+  while (processed < 500) {
+    const item = cleanupIterator.next();
+    if (item.done) {
+      cleanupIterator = null;
+      break;
+    }
+    const [key, timestamps] = item.value;
     const valid = timestamps.filter(t => now - t < RATE_LIMIT_WINDOW);
     if (valid.length === 0) rateLimitMap.delete(key);
     else rateLimitMap.set(key, valid);
+    processed++;
   }
-}, RATE_LIMIT_WINDOW);
+}, 1000);
 
 // --- HEALTH & READINESS ---
 app.get('/health', (_req, res) => {
-  const mongoState = require('mongoose').connection.readyState;
+  const mongoState = mongoose.connection.readyState;
   res.json({
     status: 'V5 Hardened',
     uptime: process.uptime(),
@@ -114,7 +168,7 @@ app.get('/health', (_req, res) => {
   });
 });
 app.get('/ready', (_req, res) => {
-  const mongoState = require('mongoose').connection.readyState;
+  const mongoState = mongoose.connection.readyState;
   if (mongoState !== 1) {
     return res.status(503).json({ ready: false, reason: 'MongoDB not connected' });
   }
@@ -122,19 +176,24 @@ app.get('/ready', (_req, res) => {
 });
 app.get('/metrics', getMetrics);
 
-// --- AUTH ROUTE (with brute-force protection: 5 attempts/min) ---
+// --- AUTH ROUTE (Multi-factor brute force protection: IP Subnet + Sub/User identity) ---
 const authBruteForce = new Map<string, number[]>();
 const AUTH_LIMIT = 5;
 const authLimiter = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  const ip = req.ip || req.socket.remoteAddress || 'unknown';
+  const rawIp = req.ip || req.socket.remoteAddress || 'unknown';
+  const subnet = getClientSubnet(rawIp);
+  const targetUser = req.body?.sub || 'anonymous';
+  const compoundKey = `${subnet}:${targetUser}`;
   const now = Date.now();
-  const attempts = (authBruteForce.get(ip) || []).filter(t => now - t < RATE_LIMIT_WINDOW);
+
+  const attempts = (authBruteForce.get(compoundKey) || []).filter(t => now - t < RATE_LIMIT_WINDOW);
   if (attempts.length >= AUTH_LIMIT) {
-    logger.warn({ ip }, 'Auth brute-force blocked');
+    logger.warn({ subnet, targetUser }, 'Auth brute-force attempt blocked');
     return res.status(429).json({ error: 'Too many auth attempts. Try again later.' });
   }
+
   attempts.push(now);
-  authBruteForce.set(ip, attempts);
+  authBruteForce.set(compoundKey, attempts);
   next();
 };
 app.post('/api/v1/auth/token', authLimiter, issueToken);
@@ -148,6 +207,25 @@ app.use('/api/v1/geofence', auditLog('Geofence'), geofenceRouter);
 app.use('/api/v1/ai', aiRouter);
 app.use('/api/v1/comms', commsRouter);
 app.use('/api/v1/iot', iotRouter);
+app.use('/api/v1/transfers', auditLog('ResourceTransfer'), transferRouter);
+app.use('/api/v1/timeline', timelineRouter);
+app.use('/api/v1/cot', cotRouter);
+app.use('/api/v1/triage', auditLog('Triage'), triageRouter);
+app.use('/api/v1/drones', auditLog('DroneMission'), dronePlanningRouter);
+app.use('/api/v1/drones/vision', auditLog('DroneVision'), droneVisionRouter);
+app.use('/api/v1/forecast', forecastRouter);
+app.use('/api/v1/dtn', auditLog('DTNBundle'), dtnRouter);
+app.use('/api/v1/evacuation', auditLog('EvacuationRoute'), evacuationRouter);
+app.use('/api/v1/governance', auditLog('EmergencyGovernance'), governanceRouter);
+app.use('/api/v1/lora/uart', auditLog('LoRaUart'), loraUartRouter);
+app.use('/api/v1/hazard/plume', auditLog('PlumeHazard'), plumeRouter);
+app.use('/api/v1/iot/audio', auditLog('AcousticDetection'), acousticRouter);
+app.use('/api/v1/security/pqc', auditLog('PQCCrypto'), pqcRouter);
+app.use('/api/v1/system', auditBenchmarkRouter);
+
+
+
+
 
 // Legacy fallback routes for backward compatibility
 app.use('/api/zones', auditLog('DangerZone'), zonesRouter);
@@ -157,6 +235,15 @@ app.use('/api/geofence', auditLog('Geofence'), geofenceRouter);
 app.use('/api/ai', aiRouter);
 app.use('/api/comms', commsRouter);
 app.use('/api/iot', iotRouter);
+app.use('/api/transfers', auditLog('ResourceTransfer'), transferRouter);
+app.use('/api/timeline', timelineRouter);
+app.use('/api/cot', cotRouter);
+app.use('/api/triage', triageRouter);
+app.use('/api/drones', dronePlanningRouter);
+app.use('/api/forecast', forecastRouter);
+app.use('/api/dtn', dtnRouter);
+app.use('/api/evacuation', evacuationRouter);
+app.use('/api/governance', governanceRouter);
 
 // --- GLOBAL ERROR BOUNDARY ---
 app.use((err: any, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

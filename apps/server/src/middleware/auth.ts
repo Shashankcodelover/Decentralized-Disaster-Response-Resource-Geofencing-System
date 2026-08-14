@@ -18,7 +18,25 @@ declare global {
   }
 }
 
-const JWT_SECRET = process.env.JWT_SECRET ?? 'change_me_in_production';
+const JWT_SECRET: string = process.env.JWT_SECRET || '';
+if (!JWT_SECRET) {
+  // Warn or throw depending on environment
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(
+      '[FATAL] JWT_SECRET environment variable is not set. '
+      + 'The server MUST NOT start without a securely configured secret. '
+      + 'Set JWT_SECRET in your .env file or environment before launching.'
+    );
+  }
+}
+
+const getSecret = (): string => {
+  const secret = process.env.JWT_SECRET || JWT_SECRET;
+  if (!secret) {
+    throw new Error('JWT_SECRET is not configured');
+  }
+  return secret;
+};
 
 /**
  * requireAuth — rejects requests without a valid JWT.
@@ -33,7 +51,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction): vo
 
   const token = header.slice(7);
   try {
-    const payload = jwt.verify(token, JWT_SECRET) as AuthPayload;
+    const payload = jwt.verify(token, getSecret()) as unknown as AuthPayload;
     req.user = payload;
     next();
   } catch (err) {
@@ -67,7 +85,8 @@ export function issueToken(req: Request, res: Response): void {
     secret?: string;
   };
 
-  if (secret !== JWT_SECRET) {
+  const configuredSecret = getSecret();
+  if (secret !== configuredSecret) {
     res.status(401).json({ error: 'Invalid admin secret' });
     return;
   }
@@ -76,7 +95,7 @@ export function issueToken(req: Request, res: Response): void {
     return;
   }
 
-  const token = jwt.sign({ sub, role } as AuthPayload, JWT_SECRET, { expiresIn: '8h' });
+  const token = jwt.sign({ sub, role }, configuredSecret, { expiresIn: '8h' });
   logger.info({ sub, role }, 'Token issued');
   res.json({ token, expiresIn: '8h' });
 }

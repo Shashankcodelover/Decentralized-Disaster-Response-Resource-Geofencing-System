@@ -31,12 +31,30 @@ export function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lo
   return R * c;
 }
 
+// Map of responderId to their last stable anonymized grid coordinate
+const stableLocations = new Map<string, { blurredLng: number; blurredLat: number }>();
+
 // Anonymize precise GPS location by rounding to grid resolution (~100m blur)
-export function anonymizeCoordinates(lat: number, lng: number, gridResolution: number = 0.001): { blurredLat: number; blurredLng: number } {
-  return {
-    blurredLat: Math.round(lat / gridResolution) * gridResolution,
-    blurredLng: Math.round(lng / gridResolution) * gridResolution,
-  };
+// Uses hysteresis to prevent boundary jitter oscillation
+export function anonymizeCoordinates(responderId: string, lng: number, lat: number, gridResolution: number = 0.001): { blurredLng: number; blurredLat: number } {
+  const rawLng = Math.round(lng / gridResolution) * gridResolution;
+  const rawLat = Math.round(lat / gridResolution) * gridResolution;
+  
+  const lastStable = stableLocations.get(responderId);
+  if (!lastStable) {
+    const newLoc = { blurredLng: rawLng, blurredLat: rawLat };
+    stableLocations.set(responderId, newLoc);
+    return newLoc;
+  }
+  
+  const dist = Math.sqrt(Math.pow(lng - lastStable.blurredLng, 2) + Math.pow(lat - lastStable.blurredLat, 2));
+  if (dist > gridResolution * 0.5) {
+    const newLoc = { blurredLng: rawLng, blurredLat: rawLat };
+    stableLocations.set(responderId, newLoc);
+    return newLoc;
+  }
+  
+  return lastStable;
 }
 
 // Evaluate whether victim is inside a emergency geofence zone
