@@ -18,7 +18,15 @@ import {
   AtmosphericPlumeEngine,
   AcousticSosDetector,
   PqcHybridSigner,
+  SatelliteSbdCodec,
+  FloodHydrodynamicEngine,
+  DroneSwarmFlockingEngine,
+  BiometricVitalsEngine,
+  SeismicEarlyWarningEngine,
+  MicrogridEnergyEngine,
+  ZkpVictimIdentityEngine,
 } from '@mirage/crdt-logic';
+
 
 
 
@@ -692,7 +700,99 @@ describe('Global Leadership Protocols & Engines', () => {
     expect(replayCheck.isValid).toBe(false);
     expect(replayCheck.reason).toContain('Replay attack');
   });
+
+  it('V9: should encode and decode satellite SBD binary frames', () => {
+    const sbd = new SatelliteSbdCodec();
+    const frame = sbd.encodeSbdFrame(8821, 'SOS_EMERGENCY', 12.9716, 77.5946, 'SEISMIC_COLLAPSE_STATION_B');
+    const decoded = sbd.decodeSbdFrame(frame);
+    expect(decoded.isValid).toBe(true);
+    expect(decoded.momsn).toBe(8821);
+    expect(decoded.payloadText).toBe('SEISMIC_COLLAPSE_STATION_B');
+  });
+
+  it('V10: should simulate Froehlich peak dam breach discharge and downstream flood wave', () => {
+    const flood = new FloodHydrodynamicEngine();
+    const report = flood.simulateDamBreach({
+      damId: 'dam-01',
+      damName: 'Cascade Mountain Reservoir',
+      reservoirVolumeM3: 60_000_000,
+      breachWidthMeters: 140,
+      initialWaterHeadMeters: 50,
+      originCoordinates: [77.5946, 12.9716],
+      downstreamChannelSlope: 0.003,
+      manningsRoughnessCoeff: 0.04,
+    });
+    expect(report.peakDischargeRateM3s).toBeGreaterThan(6000);
+    expect(report.inundationZones.length).toBe(3);
+    expect(report.evacuationDirective).toBe('MANDATORY_HIGH_GROUND_EVACUATION');
+  });
+
+  it('V11: should calculate multi-drone swarm flocking vectors and proximity collision warnings', () => {
+    const swarm = new DroneSwarmFlockingEngine();
+    const drones = [
+      { droneId: 'UAV-A', position: { x: 10, y: 10, z: 60 }, velocity: { vx: 4, vy: 4, vz: 0 }, batteryPct: 95, assignedSectorId: 'SEC_1' },
+      { droneId: 'UAV-B', position: { x: 14, y: 12, z: 60 }, velocity: { vx: 3, vy: 5, vz: 0 }, batteryPct: 91, assignedSectorId: 'SEC_1' },
+    ];
+    const outputs = swarm.computeSwarmTrajectories(drones);
+    expect(outputs.length).toBe(2);
+    expect(outputs[0].isProximityWarning).toBe(true);
+  });
+
+  it('V12: should compute NEWS2 score, Shock Index, and trigger automated triage escalation', () => {
+    const vitalsEngine = new BiometricVitalsEngine();
+    const report = vitalsEngine.evaluateVitals({
+      patientId: 'PT-990',
+      heartRateBpm: 140,
+      systolicBpMmhg: 80,
+      diastolicBpMmhg: 45,
+      spO2Percent: 86,
+      respiratoryRateBpm: 32,
+      bodyTemperatureCelsius: 35.8,
+      ecgArrhythmiaDetected: true,
+      currentTriageTag: 'YELLOW',
+      timestamp: Date.now(),
+    });
+    expect(report.shockIndex).toBeGreaterThan(1.5);
+    expect(report.recommendedTriageTag).toBe('RED');
+    expect(report.isTagEscalated).toBe(true);
+  });
+
+  it('V13: should detect P-waves and provide countdown before destructive S-waves arrive', () => {
+    const eew = new SeismicEarlyWarningEngine();
+    const stations = [
+      { stationId: 'S1', locationCoordinates: [77.59, 12.97] as [number, number], elevationMeters: 900, staLtaRatio: 5.5, pWaveArrivalTimestampMs: Date.now(), peakGroundAccelerationG: 0.35 },
+      { stationId: 'S2', locationCoordinates: [77.63, 12.94] as [number, number], elevationMeters: 890, staLtaRatio: 6.0, pWaveArrivalTimestampMs: Date.now() + 500, peakGroundAccelerationG: 0.40 },
+    ];
+    const warning = eew.evaluateSeismicEvent(stations);
+    expect(warning).not.toBeNull();
+    expect(warning?.estimatedMagnitudeMw).toBeGreaterThanOrEqual(5.0);
+  });
+
+  it('V14: should balance islanded microgrid assets and shed non-essential loads', () => {
+    const microgrid = new MicrogridEnergyEngine();
+    const dispatch = microgrid.optimizeEnergyDispatch([
+      { assetId: 'solar', type: 'SOLAR_PV', capacityKw: 50, currentOutputOrDrawKw: 20, priorityTier: 1 },
+      { assetId: 'bess', type: 'BESS_BATTERY', capacityKw: 150, currentOutputOrDrawKw: 30, batterySocPercent: 20, priorityTier: 1 },
+      { assetId: 'icu', type: 'HOSPITAL_LOAD', capacityKw: 50, currentOutputOrDrawKw: 45, priorityTier: 1 },
+      { assetId: 'camp', type: 'BASE_CAMP_LOAD', capacityKw: 30, currentOutputOrDrawKw: 25, priorityTier: 3 },
+    ]);
+    expect(dispatch.activeLoadSheddingTiers).toContain(3);
+  });
+
+  it('V15: should verify ZKP victim supply claim proofs and block double-claiming', () => {
+    const zkp = new ZkpVictimIdentityEngine();
+    const secret = 'victim_entropy_key_0x892a';
+    const proof = zkp.createSupplyClaimProof(secret, 'INSULIN_AND_TRAUMA_KIT');
+
+    const firstClaim = zkp.verifyAndRedeemClaim(proof);
+    expect(firstClaim.isApproved).toBe(true);
+
+    const secondClaim = zkp.verifyAndRedeemClaim(proof);
+    expect(secondClaim.isApproved).toBe(false);
+    expect(secondClaim.rejectionReason).toContain('Double-Claim Blocked');
+  });
 });
+
 
 
 

@@ -24,7 +24,9 @@ import { loraUartRouter } from './routes/loraUart';
 import { plumeRouter } from './routes/plume';
 import { acousticRouter } from './routes/acoustic';
 import { pqcRouter } from './routes/pqc';
+import { sovereignV15Router } from './routes/sovereignV15';
 import { issueToken } from './middleware/auth';
+
 
 
 
@@ -221,7 +223,9 @@ app.use('/api/v1/lora/uart', auditLog('LoRaUart'), loraUartRouter);
 app.use('/api/v1/hazard/plume', auditLog('PlumeHazard'), plumeRouter);
 app.use('/api/v1/iot/audio', auditLog('AcousticDetection'), acousticRouter);
 app.use('/api/v1/security/pqc', auditLog('PQCCrypto'), pqcRouter);
+app.use('/api/v1/sovereign', auditLog('SovereignV15'), sovereignV15Router);
 app.use('/api/v1/system', auditBenchmarkRouter);
+
 
 
 

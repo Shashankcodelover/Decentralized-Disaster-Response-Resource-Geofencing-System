@@ -15,6 +15,14 @@ export * from './loraUartGateway.js';
 export * from './atmosphericPlumeEngine.js';
 export * from './acousticSosDetector.js';
 export * from './pqcHybridSigner.js';
+export * from './satelliteSbdCodec.js';
+export * from './floodHydrodynamicEngine.js';
+export * from './droneSwarmFlockingEngine.js';
+export * from './biometricVitalsEngine.js';
+export * from './seismicEarlyWarningEngine.js';
+export * from './microgridEnergyEngine.js';
+export * from './zkpVictimIdentityEngine.js';
+
 
 
 

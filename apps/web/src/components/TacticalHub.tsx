@@ -15,6 +15,13 @@ import {
   AtmosphericPlumeEngine,
   AcousticSosDetector,
   PqcHybridSigner,
+  SatelliteSbdCodec,
+  FloodHydrodynamicEngine,
+  DroneSwarmFlockingEngine,
+  BiometricVitalsEngine,
+  SeismicEarlyWarningEngine,
+  MicrogridEnergyEngine,
+  ZkpVictimIdentityEngine,
   TriageResult,
   MissionPlan,
   DTNBundle,
@@ -25,6 +32,12 @@ import {
   AcousticSosClassification,
   PqcSignedPacket,
   PqcHybridKeyPair,
+  FloodSimulationReport,
+  SwarmVectorOutput,
+  BiometricEvaluationReport,
+  EarthquakeWarningReport,
+  MicrogridDispatchReport,
+  ZkpSupplyClaimProof,
 } from '@mirage/crdt-logic';
 
 interface TacticalHubProps {
@@ -35,6 +48,13 @@ interface TacticalHubProps {
 
 type TabType =
   | 'triage'
+  | 'satellite'
+  | 'flood'
+  | 'swarm'
+  | 'biometrics'
+  | 'seismic'
+  | 'microgrid'
+  | 'zkp'
   | 'plume'
   | 'loraUart'
   | 'acoustic'
@@ -47,6 +67,7 @@ type TabType =
   | 'cot'
   | 'lora'
   | 'forecast';
+
 
 export const TacticalHub: React.FC<TacticalHubProps> = ({ theme, isOpen, onClose }) => {
   const [activeTab, setActiveTab] = useState<TabType>('triage');
@@ -326,7 +347,160 @@ export const TacticalHub: React.FC<TacticalHubProps> = ({ theme, isOpen, onClose
     theme.triggerHaptic('success');
   };
 
+  // 12. V9 Satellite SBD State & Handler
+  const [sbdCodec] = useState(() => new SatelliteSbdCodec());
+  const [sbdFrameHex, setSbdFrameHex] = useState<string>('');
+  const [sbdDopplerHz, setSbdDopplerHz] = useState<number>(() => sbdCodec.calculateDopplerShiftHz());
+
+  const handleEncodeSbd = () => {
+    const frame = sbdCodec.encodeSbdFrame(
+      Math.floor(1000 + Math.random() * 9000),
+      'SOS_EMERGENCY',
+      12.9716,
+      77.5946,
+      'SEISMIC_STRUCTURAL_FAILURE_HOSPITAL'
+    );
+    const hex = Array.from(frame).map(b => b.toString(16).padStart(2, '0').toUpperCase()).join(' ');
+    setSbdFrameHex(hex);
+    setSbdDopplerHz(sbdCodec.calculateDopplerShiftHz());
+    theme.triggerHaptic('success');
+  };
+
+  // 13. V10 Flood Hydrodynamic Simulator State & Handler
+  const [floodEngine] = useState(() => new FloodHydrodynamicEngine());
+  const [floodReport, setFloodReport] = useState<FloodSimulationReport | null>(() =>
+    floodEngine.simulateDamBreach({
+      damId: 'dam-krishna-01',
+      damName: 'Krishna Valley Reservoir Dam',
+      reservoirVolumeM3: 45_000_000,
+      breachWidthMeters: 100,
+      initialWaterHeadMeters: 40,
+      originCoordinates: [77.5946, 12.9716],
+      downstreamChannelSlope: 0.002,
+      manningsRoughnessCoeff: 0.04,
+    })
+  );
+
+  const handleSimulateFlood = () => {
+    const report = floodEngine.simulateDamBreach({
+      damId: `dam-${Date.now().toString(36)}`,
+      damName: 'Cascade Valley Dam',
+      reservoirVolumeM3: 65_000_000,
+      breachWidthMeters: 150,
+      initialWaterHeadMeters: 55,
+      originCoordinates: [77.5946, 12.9716],
+      downstreamChannelSlope: 0.003,
+      manningsRoughnessCoeff: 0.045,
+    });
+    setFloodReport(report);
+    theme.triggerHaptic('warning');
+  };
+
+  // 14. V11 Swarm Drone Flocking State & Handler
+  const [swarmEngine] = useState(() => new DroneSwarmFlockingEngine());
+  const [swarmVectors, setSwarmVectors] = useState<SwarmVectorOutput[]>(() =>
+    swarmEngine.computeSwarmTrajectories([
+      { droneId: 'UAV-Alpha', position: { x: 0, y: 0, z: 50 }, velocity: { vx: 5, vy: 5, vz: 0 }, batteryPct: 92, assignedSectorId: 'SEC_A' },
+      { droneId: 'UAV-Bravo', position: { x: 8, y: 6, z: 50 }, velocity: { vx: 4, vy: 6, vz: 0 }, batteryPct: 89, assignedSectorId: 'SEC_A' },
+      { droneId: 'UAV-Charlie', position: { x: 90, y: 80, z: 50 }, velocity: { vx: 0, vy: 8, vz: 0 }, batteryPct: 85, assignedSectorId: 'SEC_B' },
+    ])
+  );
+
+  const handleComputeSwarm = () => {
+    const vectors = swarmEngine.computeSwarmTrajectories([
+      { droneId: 'UAV-Alpha', position: { x: Math.random() * 20, y: Math.random() * 20, z: 50 }, velocity: { vx: 6, vy: 4, vz: 0 }, batteryPct: 90, assignedSectorId: 'SEC_A' },
+      { droneId: 'UAV-Bravo', position: { x: Math.random() * 20, y: Math.random() * 20, z: 50 }, velocity: { vx: 5, vy: 5, vz: 0 }, batteryPct: 86, assignedSectorId: 'SEC_A' },
+      { droneId: 'UAV-Charlie', position: { x: 80 + Math.random() * 10, y: 80 + Math.random() * 10, z: 50 }, velocity: { vx: 0, vy: 7, vz: 0 }, batteryPct: 81, assignedSectorId: 'SEC_B' },
+    ]);
+    setSwarmVectors(vectors);
+    theme.triggerHaptic('tap');
+  };
+
+  // 15. V12 Biometric Vitals State & Handler
+  const [vitalsEngine] = useState(() => new BiometricVitalsEngine());
+  const [biometricReport, setBiometricReport] = useState<BiometricEvaluationReport | null>(() =>
+    vitalsEngine.evaluateVitals({
+      patientId: 'PT-409',
+      heartRateBpm: 138,
+      systolicBpMmhg: 82,
+      diastolicBpMmhg: 50,
+      spO2Percent: 87,
+      respiratoryRateBpm: 29,
+      bodyTemperatureCelsius: 36.1,
+      ecgArrhythmiaDetected: true,
+      currentTriageTag: 'YELLOW',
+      timestamp: Date.now(),
+    })
+  );
+
+  const handleEvaluateBiometrics = (status: 'critical' | 'stable') => {
+    const data = status === 'critical'
+      ? { patientId: 'PT-802', heartRateBpm: 145, systolicBpMmhg: 78, diastolicBpMmhg: 46, spO2Percent: 84, respiratoryRateBpm: 34, bodyTemperatureCelsius: 35.6, ecgArrhythmiaDetected: true, currentTriageTag: 'YELLOW' as const, timestamp: Date.now() }
+      : { patientId: 'PT-103', heartRateBpm: 76, systolicBpMmhg: 122, diastolicBpMmhg: 78, spO2Percent: 98, respiratoryRateBpm: 16, bodyTemperatureCelsius: 36.8, ecgArrhythmiaDetected: false, currentTriageTag: 'GREEN' as const, timestamp: Date.now() };
+
+    const rep = vitalsEngine.evaluateVitals(data);
+    setBiometricReport(rep);
+    theme.triggerHaptic(rep.recommendedTriageTag === 'RED' ? 'warning' : 'success');
+  };
+
+  // 16. V13 Seismic EEW State & Handler
+  const [seismicEngine] = useState(() => new SeismicEarlyWarningEngine());
+  const [seismicReport, setSeismicReport] = useState<EarthquakeWarningReport | null>(() =>
+    seismicEngine.evaluateSeismicEvent([
+      { stationId: 'ST-1', locationCoordinates: [77.59, 12.97], elevationMeters: 920, staLtaRatio: 5.8, pWaveArrivalTimestampMs: Date.now(), peakGroundAccelerationG: 0.38 },
+      { stationId: 'ST-2', locationCoordinates: [77.62, 12.95], elevationMeters: 910, staLtaRatio: 6.2, pWaveArrivalTimestampMs: Date.now() + 600, peakGroundAccelerationG: 0.42 },
+    ])
+  );
+
+  const handleRunSeismicAnalysis = () => {
+    const rep = seismicEngine.evaluateSeismicEvent([
+      { stationId: 'ST-1', locationCoordinates: [77.58, 12.96], elevationMeters: 925, staLtaRatio: 6.5, pWaveArrivalTimestampMs: Date.now(), peakGroundAccelerationG: 0.45 },
+      { stationId: 'ST-2', locationCoordinates: [77.64, 12.93], elevationMeters: 890, staLtaRatio: 7.1, pWaveArrivalTimestampMs: Date.now() + 400, peakGroundAccelerationG: 0.52 },
+    ]);
+    setSeismicReport(rep);
+    theme.triggerHaptic('warning');
+  };
+
+  // 17. V14 Microgrid Energy State & Handler
+  const [microgridEngine] = useState(() => new MicrogridEnergyEngine());
+  const [microgridReport, setMicrogridReport] = useState<MicrogridDispatchReport | null>(() =>
+    microgridEngine.optimizeEnergyDispatch([
+      { assetId: 'solar-01', type: 'SOLAR_PV', capacityKw: 40, currentOutputOrDrawKw: 18, priorityTier: 1 },
+      { assetId: 'bess-01', type: 'BESS_BATTERY', capacityKw: 120, currentOutputOrDrawKw: 25, batterySocPercent: 24, priorityTier: 1 },
+      { assetId: 'hospital-icu', type: 'HOSPITAL_LOAD', capacityKw: 45, currentOutputOrDrawKw: 38, priorityTier: 1 },
+      { assetId: 'basecamp-tent', type: 'BASE_CAMP_LOAD', capacityKw: 30, currentOutputOrDrawKw: 22, priorityTier: 3 },
+    ])
+  );
+
+  const handleOptimizeMicrogrid = () => {
+    const rep = microgridEngine.optimizeEnergyDispatch([
+      { assetId: 'solar-01', type: 'SOLAR_PV', capacityKw: 40, currentOutputOrDrawKw: 10, priorityTier: 1 },
+      { assetId: 'bess-01', type: 'BESS_BATTERY', capacityKw: 120, currentOutputOrDrawKw: 35, batterySocPercent: 18, priorityTier: 1 },
+      { assetId: 'hospital-icu', type: 'HOSPITAL_LOAD', capacityKw: 45, currentOutputOrDrawKw: 40, priorityTier: 1 },
+      { assetId: 'basecamp-tent', type: 'BASE_CAMP_LOAD', capacityKw: 30, currentOutputOrDrawKw: 25, priorityTier: 3 },
+    ]);
+    setMicrogridReport(rep);
+    theme.triggerHaptic('tap');
+  };
+
+  // 18. V15 ZKP Anonymous Claims State & Handler
+  const [zkpEngine] = useState(() => new ZkpVictimIdentityEngine());
+  const [zkpClaimStatus, setZkpClaimStatus] = useState<{ isApproved: boolean; token?: string; reason?: string } | null>(null);
+
+  const handleClaimZkpRation = (isDoubleClaimAttempt = false) => {
+    const secret = isDoubleClaimAttempt ? 'fixed_secret_used_twice' : `secret_${Date.now()}`;
+    const proof = zkpEngine.createSupplyClaimProof(secret, 'INSULIN_AND_TRAUMA_KIT');
+    const result = zkpEngine.verifyAndRedeemClaim(proof);
+    setZkpClaimStatus({
+      isApproved: result.isApproved,
+      token: result.redemptionToken,
+      reason: result.rejectionReason,
+    });
+    theme.triggerHaptic(result.isApproved ? 'success' : 'warning');
+  };
+
   const mciSummary = summarizeMCI(triageHistory);
+
 
 
   return (
@@ -408,6 +582,13 @@ export const TacticalHub: React.FC<TacticalHubProps> = ({ theme, isOpen, onClose
           {(
             [
               { id: 'triage', label: '🚑 MCI START Triage', badge: mciSummary.counts.RED },
+              { id: 'satellite', label: '🛰️ Satellite Direct-to-Cell', badge: 'Iridium' },
+              { id: 'flood', label: '🌊 Flood & Dam Hydrodynamic', badge: floodReport?.evacuationDirective ? 'HIGH GROUND' : null },
+              { id: 'swarm', label: '🛸 Swarm Drone Flocking', badge: `${swarmVectors.length} UAVs` },
+              { id: 'biometrics', label: '❤️ Biometric Vitals', badge: biometricReport?.recommendedTriageTag },
+              { id: 'seismic', label: '🌋 Seismic EEW Triangulation', badge: seismicReport ? `M${seismicReport.estimatedMagnitudeMw}` : null },
+              { id: 'microgrid', label: '⚡ Microgrid Black-Start', badge: microgridReport?.gridStatus },
+              { id: 'zkp', label: '🛡️ ZKP Anonymous Claims', badge: 'ZKP-Active' },
               { id: 'plume', label: '☢️ Plume Hazard Radar', badge: plumeResult ? plumeResult.evacuationUrgency : null },
               { id: 'loraUart', label: '🔌 LoRa Physical UART', badge: 'SX1262' },
               { id: 'acoustic', label: '🎙️ Acoustic SOS Detector', badge: acousticResult?.isSosConfirmed ? 'SOS!' : null },
@@ -422,6 +603,7 @@ export const TacticalHub: React.FC<TacticalHubProps> = ({ theme, isOpen, onClose
               { id: 'forecast', label: '📊 Supply Burn Forecaster', badge: null },
             ] as const
           ).map(tab => (
+
 
             <button
               key={tab.id}
@@ -1157,9 +1339,321 @@ export const TacticalHub: React.FC<TacticalHubProps> = ({ theme, isOpen, onClose
             </div>
           )}
 
+          {/* TAB: V9 SATELLITE DIRECT-TO-CELL & IRIDIUM SBD */}
+          {activeTab === 'satellite' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#38bdf8' }}>
+                    🛰️ Satellite Direct-to-Cell &amp; Iridium SBD Gateway
+                  </div>
+                  <div style={{ fontSize: '11px', opacity: 0.8 }}>
+                    340-byte compact binary burst packets with L-Band Doppler shift frequency correction (+/- {sbdDopplerHz} Hz).
+                  </div>
+                </div>
+                <button
+                  onClick={handleEncodeSbd}
+                  style={{ backgroundColor: '#0284c7', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 14px', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  ⚡ Broadcast Satellite Burst
+                </button>
+              </div>
+
+              <div style={{ background: 'rgba(0,0,0,0.4)', padding: '12px', borderRadius: '8px', fontFamily: 'monospace', fontSize: '11px' }}>
+                <div style={{ color: '#38bdf8', fontWeight: 'bold', marginBottom: '4px' }}>Binary SBD Packet Frame (CRC-16 Verified):</div>
+                <div style={{ wordBreak: 'break-all', color: '#facc15', marginBottom: '8px' }}>
+                  {sbdFrameHex || '53 04 12 66 0A 1B 89 FF 01 53 45 49 53 4D 49 43 5F 43 4F 4C 4C 41 50 53 45 10 21'}
+                </div>
+                <div style={{ color: '#22c55e' }}>
+                  ✔ Satellite Transceiver Link: Lock Acquired • L-Band Doppler Offset: {sbdDopplerHz} Hz • Constellation: Iridium NEXT / Direct-to-Cell LEO
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB: V10 FLOOD & DAM HYDRODYNAMIC SIMULATOR */}
+          {activeTab === 'flood' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#06b6d4' }}>
+                    🌊 Dam-Breach Hydrodynamic Wave Simulator (2D Saint-Venant)
+                  </div>
+                  <div style={{ fontSize: '11px', opacity: 0.8 }}>
+                    Froehlich peak discharge formula with Manning's roughness coefficient resistance modeling downstream flood wave.
+                  </div>
+                </div>
+                <button
+                  onClick={handleSimulateFlood}
+                  style={{ backgroundColor: '#0891b2', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 14px', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  ⚡ Simulate Catastrophic Breach
+                </button>
+              </div>
+
+              {floodReport && (
+                <div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '12px' }}>
+                    <div style={{ background: 'rgba(6, 182, 212, 0.15)', border: '1px solid #06b6d4', padding: '10px', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '11px', color: '#06b6d4', fontWeight: 'bold' }}>PEAK DISCHARGE (Q_PEAK)</div>
+                      <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#fff', margin: '4px 0' }}>
+                        {floodReport.peakDischargeRateM3s.toLocaleString()} m³/s
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#a5f3fc' }}>Emptying Duration: ~{floodReport.estimatedTotalEmptyingHours} Hours</div>
+                    </div>
+                    <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #ef4444', padding: '10px', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '11px', color: '#ef4444', fontWeight: 'bold' }}>TORRENT INUNDATION (T+15m)</div>
+                      <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#ef4444', margin: '4px 0' }}>
+                        {floodReport.inundationZones[0]?.peakDepthMeters}m Depth
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#fca5a5' }}>Velocity: {floodReport.inundationZones[0]?.flowVelocityMps} m/s</div>
+                    </div>
+                    <div style={{ background: 'rgba(234, 179, 8, 0.15)', border: '1px solid #eab308', padding: '10px', borderRadius: '8px' }}>
+                      <div style={{ fontSize: '11px', color: '#eab308', fontWeight: 'bold' }}>CRITICAL DIRECTIVE</div>
+                      <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#fef08a', margin: '4px 0' }}>
+                        {floodReport.evacuationDirective.replace(/_/g, ' ')}
+                      </div>
+                      <div style={{ fontSize: '10px', color: '#fef08a' }}>Bridge &amp; Water Plant Imminent Inundation</div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: V11 SWARM DRONE FLOCKING */}
+          {activeTab === 'swarm' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#10b981' }}>
+                    🛸 Autonomous Swarm Drone Flocking &amp; Collision Avoidance
+                  </div>
+                  <div style={{ fontSize: '11px', opacity: 0.8 }}>
+                    Decentralized Reynolds Boids (Separation, Alignment, Cohesion) + ADS-B proximity collision cones.
+                  </div>
+                </div>
+                <button
+                  onClick={handleComputeSwarm}
+                  style={{ backgroundColor: '#059669', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 14px', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  ⚡ Re-calculate Swarm Trajectories
+                </button>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                {swarmVectors.map(v => (
+                  <div key={v.droneId} style={{ background: v.isProximityWarning ? 'rgba(239, 68, 68, 0.15)' : 'rgba(0,0,0,0.4)', border: `1px solid ${v.isProximityWarning ? '#ef4444' : '#10b981'}`, padding: '12px', borderRadius: '8px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                      <div style={{ fontWeight: 'bold', color: '#fff' }}>{v.droneId}</div>
+                      <div style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '4px', background: v.isProximityWarning ? '#ef4444' : '#10b981', color: '#fff', fontWeight: 'bold' }}>
+                        {v.isProximityWarning ? 'COLLISION CONE' : 'CLEAR FLIGHT'}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#cbd5e1' }}>Heading: <span style={{ color: '#38bdf8', fontWeight: 'bold' }}>{v.recommendedHeadingDegrees}°</span> • Speed: {v.targetSpeedMps} m/s</div>
+                    <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px', fontFamily: 'monospace' }}>
+                      Anti-Collision Force: ax={v.antiCollisionAdjustment.ax}, ay={v.antiCollisionAdjustment.ay}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB: V12 BIOMETRIC VITALS & SHOCK INDEX */}
+          {activeTab === 'biometrics' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#f43f5e' }}>
+                    ❤️ Biometric Wearable Vitals &amp; Dynamic Triage Escalation
+                  </div>
+                  <div style={{ fontSize: '11px', opacity: 0.8 }}>
+                    Continuous NEWS2 Clinical Early Warning Scoring, Shock Index ($SI = HR / SBP$), and automated MEDEVAC dispatch.
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => handleEvaluateBiometrics('critical')}
+                    style={{ background: '#ef4444', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 12px', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    Simulate Severe Shock
+                  </button>
+                  <button
+                    onClick={() => handleEvaluateBiometrics('stable')}
+                    style={{ background: '#22c55e', color: '#fff', border: 'none', borderRadius: '6px', padding: '6px 12px', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    Simulate Stable
+                  </button>
+                </div>
+              </div>
+
+              {biometricReport && (
+                <div style={{ background: biometricReport.recommendedTriageTag === 'RED' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(0,0,0,0.4)', border: `1px solid ${biometricReport.recommendedTriageTag === 'RED' ? '#ef4444' : '#22c55e'}`, padding: '14px', borderRadius: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div style={{ fontWeight: 'bold', fontSize: '15px', color: '#fff' }}>
+                      Patient {biometricReport.patientId} • Shock Index: <span style={{ color: biometricReport.shockIndex >= 1.0 ? '#ef4444' : '#22c55e' }}>{biometricReport.shockIndex}</span> (NEWS2: {biometricReport.news2Score})
+                    </div>
+                    <div style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '4px', background: biometricReport.recommendedTriageTag === 'RED' ? '#ef4444' : '#22c55e', color: '#fff', fontWeight: 'bold' }}>
+                      TRIAGE: {biometricReport.recommendedTriageTag} {biometricReport.isTagEscalated && '⚠️ ESCALATED'}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#fca5a5', marginBottom: '6px' }}>
+                    Alert Flags: {biometricReport.criticalAlertFlags.join(' • ') || 'None (Hemodynamically Stable)'}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#fff', fontWeight: 'bold' }}>
+                    🚨 Directive: {biometricReport.immediateIntervention}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: V13 SEISMIC P/S-WAVE EEW */}
+          {activeTab === 'seismic' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#f59e0b' }}>
+                    🌋 Seismic P-Wave &amp; S-Wave Earthquake Early Warning (EEW)
+                  </div>
+                  <div style={{ fontSize: '11px', opacity: 0.8 }}>
+                    STA/LTA automated phase picker providing 10-60s destructive shaking countdown before structural collapse wavefront.
+                  </div>
+                </div>
+                <button
+                  onClick={handleRunSeismicAnalysis}
+                  style={{ backgroundColor: '#d97706', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 14px', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  ⚡ Trigger Multilateral EEW
+                </button>
+              </div>
+
+              {seismicReport && (
+                <div>
+                  <div style={{ background: 'rgba(245, 158, 11, 0.15)', border: '1px solid #f59e0b', padding: '12px', borderRadius: '8px', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div style={{ fontWeight: 'bold', fontSize: '15px', color: '#f59e0b' }}>
+                        EARTHQUAKE ALERT: Estimated Magnitude Mw {seismicReport.estimatedMagnitudeMw} (Hypocenter Depth: {seismicReport.focalDepthKm}km)
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#fde68a' }}>Epicenter: {seismicReport.epicenterCoordinates.join(', ')}</div>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                    {seismicReport.targetCitiesCountdown.map(c => (
+                      <div key={c.cityName} style={{ background: 'rgba(0,0,0,0.4)', border: '1px solid rgba(255,255,255,0.1)', padding: '10px', borderRadius: '8px' }}>
+                        <div style={{ fontWeight: 'bold', color: '#fff' }}>{c.cityName}</div>
+                        <div style={{ fontSize: '20px', fontWeight: 'bold', color: c.warningLeadTimeSeconds < 10 ? '#ef4444' : '#f59e0b', margin: '4px 0' }}>
+                          ⏱️ {c.warningLeadTimeSeconds}s Lead-Time
+                        </div>
+                        <div style={{ fontSize: '10px', color: '#94a3b8' }}>Distance: {c.distanceKm} km • Intensity: {c.estimatedShakingIntensityMMI}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: V14 MICROGRID & ENERGY BLACK-START */}
+          {activeTab === 'microgrid' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#eab308' }}>
+                    ⚡ Autonomous Microgrid &amp; Energy Black-Start Allocator
+                  </div>
+                  <div style={{ fontSize: '11px', opacity: 0.8 }}>
+                    Solar PV, BESS Battery Banks, and Diesel Genset load-shedding protecting hospital ICU and critical command circuits.
+                  </div>
+                </div>
+                <button
+                  onClick={handleOptimizeMicrogrid}
+                  style={{ backgroundColor: '#ca8a04', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 14px', fontWeight: 'bold', cursor: 'pointer' }}
+                >
+                  ⚡ Optimize Grid Dispatch
+                </button>
+              </div>
+
+              {microgridReport && (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                  <div style={{ background: 'rgba(234, 179, 8, 0.15)', border: '1px solid #eab308', padding: '12px', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '11px', color: '#eab308', fontWeight: 'bold' }}>GRID STATUS</div>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#fff', margin: '4px 0' }}>{microgridReport.gridStatus}</div>
+                    <div style={{ fontSize: '10px', color: '#fef08a' }}>Generation: {microgridReport.totalGenerationKw} kW • Load: {microgridReport.totalDemandKw} kW</div>
+                  </div>
+                  <div style={{ background: 'rgba(56, 189, 248, 0.15)', border: '1px solid #38bdf8', padding: '12px', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 'bold' }}>BESS BATTERY AUTONOMY</div>
+                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#fff', margin: '4px 0' }}>{microgridReport.batteryAutonomyRemainingHours} Hours</div>
+                    <div style={{ fontSize: '10px', color: '#bae6fd' }}>Diesel Backup Reserve: {microgridReport.dieselFuelAutonomyHours} Hours</div>
+                  </div>
+                  <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #ef4444', padding: '12px', borderRadius: '8px' }}>
+                    <div style={{ fontSize: '11px', color: '#ef4444', fontWeight: 'bold' }}>LOAD SHEDDING STATUS</div>
+                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#fca5a5', margin: '4px 0' }}>
+                      {microgridReport.activeLoadSheddingTiers.length > 0 ? `Tier ${microgridReport.activeLoadSheddingTiers.join(', ')} Shed` : 'Full Load Energized'}
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#fca5a5' }}>Tier 1 Life-Support 100% Protected</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB: V15 ZKP ANONYMOUS CLAIMS */}
+          {activeTab === 'zkp' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#8b5cf6' }}>
+                    🛡️ Zero-Knowledge Proof (ZKP) Anonymous Victim Supply Claims
+                  </div>
+                  <div style={{ fontSize: '11px', opacity: 0.8 }}>
+                    Allows displaced victims to anonymously redeem emergency medical/food rations with zero PII disclosure and cryptographic nullifier anti-double-claim defense.
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => handleClaimZkpRation(false)}
+                    style={{ backgroundColor: '#8b5cf6', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 14px', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    ⚡ Anonymous Claim Ration
+                  </button>
+                  <button
+                    onClick={() => handleClaimZkpRation(true)}
+                    style={{ backgroundColor: '#6b7280', color: '#fff', border: 'none', borderRadius: '6px', padding: '8px 14px', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    Attempt Double-Claim
+                  </button>
+                </div>
+              </div>
+
+              {zkpClaimStatus && (
+                <div style={{ background: zkpClaimStatus.isApproved ? 'rgba(139, 92, 246, 0.15)' : 'rgba(239, 68, 68, 0.15)', border: `1px solid ${zkpClaimStatus.isApproved ? '#8b5cf6' : '#ef4444'}`, padding: '14px', borderRadius: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <div style={{ fontWeight: 'bold', color: zkpClaimStatus.isApproved ? '#c4b5fd' : '#fca5a5' }}>
+                      {zkpClaimStatus.isApproved ? '✔ ANONYMOUS RATION CLAIM APPROVED' : '❌ CLAIM REJECTED'}
+                    </div>
+                    {zkpClaimStatus.token && (
+                      <div style={{ fontFamily: 'monospace', fontWeight: 'bold', color: '#22c55e' }}>
+                        Token: {zkpClaimStatus.token}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ fontSize: '11px', color: '#cbd5e1' }}>
+                    {zkpClaimStatus.isApproved
+                      ? 'Zero-Knowledge Merkle proof verified against decentralized registry. Nullifier registered to prevent duplicate epoch claims.'
+                      : `Reason: ${zkpClaimStatus.reason}`}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       </div>
     </div>
   );
 };
+
 
